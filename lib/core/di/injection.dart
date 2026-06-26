@@ -7,6 +7,15 @@ import '../network/dio_interceptor.dart';
 import '../storage/secure_storage.dart';
 import '../storage/preference_storage.dart';
 import '../storage/storage_service.dart';
+import '../storage/session_service.dart';
+
+// Module registrations
+import '../../features/auth/auth_module.dart';
+import '../../features/auth/data/datasource/auth_local_data_source.dart';
+import '../../features/auth/data/datasource/auth_remote_data_source.dart';
+import '../../features/auth/data/mapper/user_mapper.dart';
+import '../../features/auth/domain/repository/auth_repository.dart';
+import '../../features/auth/presentation/auth_controller.dart';
 
 class AppLocator {
   static final AppLocator instance = AppLocator._();
@@ -19,6 +28,16 @@ class AppLocator {
   late final StorageService storageService;
   late final DioInterceptor dioInterceptor;
   late final DioClient dioClient;
+
+  // Global Session Service
+  late final SessionService sessionService;
+
+  // Feature dependencies registered via module classes
+  late AuthLocalDataSource authLocalDataSource;
+  late AuthRemoteDataSource authRemoteDataSource;
+  late UserMapper userMapper;
+  late AuthRepository authRepository;
+  late AuthController authController;
 
   Future<void> initialize() async {
     // 1. Setup config (Dev by default)
@@ -43,6 +62,13 @@ class AppLocator {
     );
     dioClient = DioClient(config: config, interceptor: dioInterceptor);
 
-    logger.info('AppLocator successfully initialized.');
+    // 5. Setup session service
+    final authLocalDS = AuthLocalDataSourceImpl(storageService);
+    sessionService = SessionService(authLocalDS);
+
+    // 6. Feature Modules Registration
+    AuthModule.register();
+
+    logger.info('AppLocator successfully initialized with SessionService.');
   }
 }

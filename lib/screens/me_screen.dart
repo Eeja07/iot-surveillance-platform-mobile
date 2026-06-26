@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/user_service.dart';
 import '../config/app_colors.dart';
-import 'login_screen.dart';
+import '../core/di/injection.dart';
+import '../features/auth/presentation/login/login_screen.dart';
 import 'about_screen.dart';
 import 'help_screen.dart';
 
@@ -74,8 +75,10 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final authController = AppLocator.instance.authController;
+
+    await authController.logout();
+
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
@@ -83,6 +86,13 @@ class _MeScreenState extends State<MeScreen> {
         builder: (context) => LoginScreen(
           toggleTheme: widget.toggleTheme,
           isDarkMode: widget.isDarkMode,
+          onSuccess: () {
+            authController.handleLoginSuccess(
+              context,
+              toggleTheme: widget.toggleTheme,
+              isDarkMode: widget.isDarkMode,
+            );
+          },
         ),
       ),
       (Route<dynamic> route) => false,

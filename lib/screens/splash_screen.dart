@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../services/auth_service.dart';
-import 'login_screen.dart';
-import 'main_screen.dart';
-import 'admin_home_screen.dart';
+import '../core/di/injection.dart';
+import '../core/network/api_result.dart';
+import '../features/auth/domain/model/user_model.dart';
+import '../features/auth/presentation/login/login_screen.dart';
 import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
@@ -21,8 +20,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final AuthService _authService = AuthService();
-
   @override
   void initState() {
     super.initState();
@@ -30,46 +27,48 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    final role = prefs.getString('role');
+    final sessionService = AppLocator.instance.sessionService;
+    final authRepository = AppLocator.instance.authRepository;
+    final authController = AppLocator.instance.authController;
 
     await Future.delayed(const Duration(milliseconds: 2500));
 
     if (!mounted) return;
 
+    final hasSession = await sessionService.isLoggedIn();
     bool isValid = false;
 
-    if (token != null && token.isNotEmpty) {
-      isValid = await _authService.checkTokenValidity(token);
+    if (hasSession) {
+      final result = await authRepository.me();
+      if (result is ApiSuccess<UserModel>) {
+        isValid = true;
+      } else {
+        await sessionService.clearSession();
+      }
     }
 
+    if (!mounted) return;
+
     if (isValid) {
-      Navigator.pushReplacement(
+      await authController.handleLoginSuccess(
         context,
-        MaterialPageRoute(
-          builder: (context) => role == 'admin'
-              ? AdminHomeScreen(
-                  toggleTheme: widget.toggleTheme,
-                  isDarkMode: widget.isDarkMode,
-                )
-              : MainScreen(
-                  toggleTheme: widget.toggleTheme,
-                  isDarkMode: widget.isDarkMode,
-                ),
-        ),
+        toggleTheme: widget.toggleTheme,
+        isDarkMode: widget.isDarkMode,
       );
     } else {
-      if (token != null) {
-        await prefs.clear();
-      }
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => LoginScreen(
             toggleTheme: widget.toggleTheme,
             isDarkMode: widget.isDarkMode,
+            onSuccess: () {
+              authController.handleLoginSuccess(
+                context,
+                toggleTheme: widget.toggleTheme,
+                isDarkMode: widget.isDarkMode,
+              );
+            },
           ),
         ),
       );

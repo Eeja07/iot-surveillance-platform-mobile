@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../storage/secure_storage.dart';
 import '../logger/logger.dart';
+import '../di/injection.dart';
 
 class DioInterceptor extends Interceptor {
   final SecureStorage _secureStorage;
@@ -50,7 +51,9 @@ class DioInterceptor extends Interceptor {
     );
     _logger.error('Error Message: ${err.message}', err.error, err.stackTrace);
     if (err.response?.statusCode == 401) {
-      // Session expired callback handler will go here
+      try {
+        AppLocator.instance.sessionService.expireSession();
+      } catch (_) {}
     }
     super.onError(err, handler);
   }
