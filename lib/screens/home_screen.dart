@@ -4,12 +4,19 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/camera_service.dart';
-import '../config/app_colors.dart';
 import '../models/camera_model.dart';
 import '../utils/toast_utils.dart';
 import '../core/di/providers.dart';
 import '../core/router/app_routes.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
+import '../features/dashboard/widgets/camera_group_card.dart';
+import '../features/dashboard/widgets/camera_tile.dart';
+import '../features/dashboard/widgets/dashboard_loading.dart';
+import '../features/dashboard/widgets/dashboard_error.dart';
+import '../features/dashboard/widgets/dashboard_empty.dart';
+import '../features/dashboard/widgets/dashboard_search_bar.dart';
+import '../features/dashboard/widgets/dashboard_header.dart';
+import '../features/dashboard/widgets/dashboard_dialogs.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback toggleTheme;
@@ -29,25 +36,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final CameraService _cameraService = CameraService();
-  static final Map<int, String> _thumbnailCache = {};
-
-  List<CameraGroup> _allCameraGroups = [];
-  List<CameraGroup> _filteredCameraGroups = [];
 
   bool _isDeleting = false;
-
   Timer? _statusRefreshTimer;
+  Timer? _thumbnailRefreshTimer;
+
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     _fetchCamerasFromApi(isSilent: true);
   }
-
-  Timer? _thumbnailRefreshTimer;
-
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
 
   @override
   void initState() {
@@ -70,7 +71,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     Future.delayed(const Duration(seconds: 2), () => _refreshThumbnails());
-
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -89,38 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-
-    setState(() {
-      if (query.isEmpty) {
-        _filteredCameraGroups = List.from(_allCameraGroups);
-      } else {
-        _filteredCameraGroups = [];
-
-        for (var group in _allCameraGroups) {
-          bool groupMatch = group.name.toLowerCase().contains(query);
-
-          List<Camera> matchingCameras = group.cameras.where((cam) {
-            final nameMatch = cam.name.toLowerCase().contains(query);
-            final descMatch =
-                cam.description != null &&
-                cam.description!.toLowerCase().contains(query);
-            return nameMatch || descMatch;
-          }).toList();
-
-          if (groupMatch || matchingCameras.isNotEmpty) {
-            _filteredCameraGroups.add(
-              CameraGroup(
-                id: group.id,
-                name: group.name,
-                cameras: groupMatch ? group.cameras : matchingCameras,
-                isExpanded: true,
-              ),
-            );
-          }
-        }
-      }
-    });
+    ref.read(dashboardProvider.notifier).setSearch(_searchController.text);
   }
 
   Future<void> _refreshThumbnails() async {
@@ -128,33 +97,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final token = await sessionService.getAccessToken();
     if (token == null) return;
 
-    for (var group in _allCameraGroups) {
-      for (int i = 0; i < group.cameras.length; i++) {
-        final cam = group.cameras[i];
-
+    final groups = ref.read(dashboardProvider).valueOrNull?.groups ?? [];
+    for (var group in groups) {
+      for (var cam in group.cameras) {
         try {
           final newUrl = await _cameraService.getLatestImage(
             token,
             cam.id.toString(),
           );
-
           if (newUrl != null && mounted) {
-            _thumbnailCache[cam.id] = newUrl;
-
-            setState(() {
-              group.cameras[i] = Camera(
-                id: cam.id,
-                name: cam.name,
-                isOnline: cam.isOnline,
-                groupName: cam.groupName,
-                groupId: cam.groupId,
-                deviceId: cam.deviceId,
-                description: cam.description,
-                thumbnailUrl: newUrl,
-              );
-            });
+            ref
+                .read(dashboardProvider.notifier)
+                .updateThumbnail(cam.id as int, newUrl);
           }
-        } catch (e) {}
+        } catch (e) {
+          // Ignored
+        }
       }
     }
   }
@@ -232,125 +190,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _showGroupMenu(BuildContext context, CameraGroup group) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext bc) {
-        return Wrap(
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit Grup'),
-              onTap: () {
-                context.pop();
-                context.go(
-                  AppRoutes.editGroup,
-                  extra: {
-                    'group': group,
-                    'onSave': (bool shouldRefresh) {
-                      if (shouldRefresh) _fetchCamerasFromApi();
+  Widget _buildCameraListContent(List<CameraGroup> groups) {
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: groups.length,
+        itemBuilder: (context, index) {
+          final group = groups[index];
+
+          if (group.name == 'Tanpa Grup' || group.id == null) {
+            return _buildUngroupedSection(group);
+          }
+          return CameraGroupCard(
+            group: group,
+            forceExpanded: _isSearching,
+            onToggleExpanded: () =>
+                setState(() => group.isExpanded = !group.isExpanded),
+            onMenuPressed: () {
+              DashboardDialogs.showGroupMenu(
+                context: context,
+                group: group,
+                onEdit: () {
+                  context.go(
+                    AppRoutes.editGroup,
+                    extra: {
+                      'group': group,
+                      'onSave': (bool shouldRefresh) {
+                        if (shouldRefresh) _fetchCamerasFromApi();
+                      },
                     },
-                  },
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text(
-                'Hapus Grup',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                context.pop();
-                _showDeleteConfirmationDialog(group);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showDeleteConfirmationDialog(CameraGroup group) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Hapus Grup'),
-          content: Text(
-            'Hapus grup "${group.name}"?\n'
-            'Kamera akan dipindahkan ke "Tanpa Grup".',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Batal'),
-              onPressed: () => context.pop(),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              onPressed: () {
-                context.pop();
-                _deleteGroupProcess(group);
-              },
-              child: const Text('Hapus'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showCameraOptions(BuildContext context, Camera camera) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) {
-        return Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit, color: Colors.blue),
-              title: const Text('Edit Kamera'),
-              onTap: () {
-                context.pop();
-                context.go(AppRoutes.editCamera, extra: {'camera': camera});
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                'Hapus Kamera',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                context.pop();
-                _confirmDeleteCamera(camera);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _confirmDeleteCamera(Camera camera) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Kamera'),
-        content: Text('Hapus kamera "${camera.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () {
-              context.pop();
-              _deleteCameraProcess(camera);
+                  );
+                },
+                onDelete: () {
+                  DashboardDialogs.showDeleteGroupConfirmation(
+                    context: context,
+                    group: group,
+                    onConfirm: () => _deleteGroupProcess(group),
+                  );
+                },
+              );
             },
-            child: const Text('Hapus'),
-          ),
-        ],
+            onCameraLongPress: (camera) {
+              DashboardDialogs.showCameraOptions(
+                context: context,
+                camera: camera,
+                onEdit: () {
+                  context.go(AppRoutes.editCamera, extra: {'camera': camera});
+                },
+                onDelete: () {
+                  DashboardDialogs.showDeleteCameraConfirmation(
+                    context: context,
+                    camera: camera,
+                    onConfirm: () => _deleteCameraProcess(camera),
+                  );
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -363,18 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Cari kamera atau grup...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                ),
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              )
+            ? DashboardSearchBar(controller: _searchController, autofocus: true)
             : const Text('Home'),
         actions: [
           IconButton(
@@ -382,9 +269,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: () {
               if (_isSearching) {
                 _searchController.clear();
+                ref.read(dashboardProvider.notifier).clearSearch();
                 setState(() {
                   _isSearching = false;
-                  _filteredCameraGroups = List.from(_allCameraGroups);
                 });
               } else {
                 setState(() {
@@ -408,382 +295,93 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           dashboardAsync.when(
             data: (dashboardState) {
-              _allCameraGroups = dashboardState.groups;
-              final query = _searchController.text.toLowerCase();
-              if (query.isEmpty) {
-                _filteredCameraGroups = _allCameraGroups;
-              } else {
-                _filteredCameraGroups = dashboardState.filteredGroups;
+              final groups = dashboardState.filteredGroups;
+
+              if (groups.isEmpty) {
+                return DashboardEmpty(
+                  isSearching: _isSearching,
+                  onRefresh: _refreshData,
+                );
               }
 
-              if (_filteredCameraGroups.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return RefreshIndicator(
-                onRefresh: _refreshData,
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                  itemCount: _filteredCameraGroups.length,
-                  itemBuilder: (context, index) {
-                    final group = _filteredCameraGroups[index];
-
-                    if (group.name == 'Tanpa Grup' || group.id == null) {
-                      return _buildUngroupedSection(group);
-                    }
-                    return _buildGroupCard(group, forceExpanded: _isSearching);
-                  },
-                ),
-              );
+              return _buildCameraListContent(groups);
             },
             loading: () {
-              if (_allCameraGroups.isNotEmpty) {
-                return RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                    itemCount: _filteredCameraGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = _filteredCameraGroups[index];
-
-                      if (group.name == 'Tanpa Grup' || group.id == null) {
-                        return _buildUngroupedSection(group);
-                      }
-                      return _buildGroupCard(
-                        group,
-                        forceExpanded: _isSearching,
-                      );
-                    },
-                  ),
-                );
+              final currentGroups =
+                  dashboardAsync.valueOrNull?.filteredGroups ?? [];
+              if (currentGroups.isNotEmpty) {
+                return _buildCameraListContent(currentGroups);
               }
-              return const Center(child: CircularProgressIndicator());
+              return const DashboardLoading();
             },
             error: (err, stack) {
-              if (_allCameraGroups.isNotEmpty) {
-                return RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                    itemCount: _filteredCameraGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = _filteredCameraGroups[index];
-
-                      if (group.name == 'Tanpa Grup' || group.id == null) {
-                        return _buildUngroupedSection(group);
-                      }
-                      return _buildGroupCard(
-                        group,
-                        forceExpanded: _isSearching,
-                      );
-                    },
-                  ),
-                );
+              final currentGroups =
+                  dashboardAsync.valueOrNull?.filteredGroups ?? [];
+              if (currentGroups.isNotEmpty) {
+                return _buildCameraListContent(currentGroups);
               }
-              return Center(child: Text(err.toString()));
+              return DashboardError(
+                error: err.toString(),
+                onRetry: _refreshData,
+              );
             },
           ),
-          // Delete-in-progress overlay
           if (_isDeleting)
             const Positioned.fill(
               child: ColoredBox(
                 color: Colors.black26,
-                child: Center(child: CircularProgressIndicator()),
+                child: DashboardLoading(),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.videocam_off_outlined, size: 80, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            _isSearching
-                ? 'Tidak ada kamera yang cocok.'
-                : 'Tidak ada kamera ditemukan.',
-            style: const TextStyle(color: Colors.grey),
-          ),
-          if (!_isSearching) ...[
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _fetchCamerasFromApi,
-              child: const Text('Refresh'),
-            ),
-          ],
         ],
       ),
     );
   }
 
   Widget _buildUngroupedSection(CameraGroup group) {
+    if (group.cameras.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (group.cameras.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.only(left: 4.0, bottom: 8.0, top: 8.0),
-            child: Text(
-              "Kamera Lainnya",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
-              ),
-            ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const DashboardHeader(title: "Kamera Lainnya"),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 16.0,
+            mainAxisSpacing: 16.0,
+            childAspectRatio: 1.2,
           ),
-          _buildCameraGrid(group.cameras),
-          const SizedBox(height: 16),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildGroupCard(CameraGroup group, {bool forceExpanded = false}) {
-    final isExpanded = forceExpanded || group.isExpanded;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          _buildGroupHeader(group),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 300),
-            firstChild: _buildCameraList(group.cameras),
-            secondChild: _buildCameraGrid(group.cameras),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-          ),
-          if (!forceExpanded)
-            InkWell(
-              onTap: () => setState(() => group.isExpanded = !group.isExpanded),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                color: Colors.grey.withOpacity(0.05),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      group.isExpanded
-                          ? 'Tutup (Fold)'
-                          : 'Lihat Semua (${group.cameras.length} Total)',
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      group.isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 20,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGroupHeader(CameraGroup group) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16.0, 4.0, 4.0, 4.0),
-      color: Theme.of(context).cardTheme.color?.withAlpha(40),
-      child: Row(
-        children: [
-          Icon(Icons.folder_open, size: 20, color: AppColors.textPrimary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              group.name,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () => _showGroupMenu(context, group),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCameraGrid(List<Camera> cameras) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: cameras.length,
-      itemBuilder: (context, index) => _buildCameraCard(cameras[index]),
-    );
-  }
-
-  Widget _buildCameraList(List<Camera> cameras) {
-    return Container(
-      height: 120,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: cameras.length,
-        itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.only(right: 10.0),
-          child: _buildCameraCard(cameras[index], isHorizontal: true),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCameraCard(Camera camera, {bool isHorizontal = false}) {
-    final double? cardWidth = isHorizontal ? 160 : null;
-    final Color statusColor = camera.isOnline
-        ? AppColors.success
-        : AppColors.danger;
-
-    return SizedBox(
-      width: cardWidth,
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            context.go(AppRoutes.cameraDetail, extra: {'camera': camera});
+          itemCount: group.cameras.length,
+          itemBuilder: (context, index) {
+            final camera = group.cameras[index];
+            return CameraTile(
+              camera: camera,
+              onLongPress: () {
+                DashboardDialogs.showCameraOptions(
+                  context: context,
+                  camera: camera,
+                  onEdit: () {
+                    context.go(AppRoutes.editCamera, extra: {'camera': camera});
+                  },
+                  onDelete: () {
+                    DashboardDialogs.showDeleteCameraConfirmation(
+                      context: context,
+                      camera: camera,
+                      onConfirm: () => _deleteCameraProcess(camera),
+                    );
+                  },
+                );
+              },
+            );
           },
-          onLongPress: () => _showCameraOptions(context, camera),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(
-                color: Theme.of(context).cardTheme.color?.withAlpha(40),
-                child:
-                    (camera.thumbnailUrl != null &&
-                        camera.thumbnailUrl!.isNotEmpty)
-                    ? Image.network(
-                        camera.thumbnailUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (ctx, err, stack) => Center(
-                          child: Icon(
-                            Icons.videocam_off,
-                            size: 40,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                        loadingBuilder: (ctx, child, progress) {
-                          if (progress == null) return child;
-                          return Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: progress.expectedTotalBytes != null
-                                    ? progress.cumulativeBytesLoaded /
-                                          progress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : Center(
-                        child: Icon(
-                          Icons.videocam,
-                          size: 40,
-                          color: Colors.grey[400],
-                        ),
-                      ),
-              ),
-
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.8),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              Positioned(
-                bottom: 8,
-                left: 10,
-                right: 10,
-                child: Text(
-                  camera.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 2)],
-                  ),
-                  textAlign: TextAlign.left,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
         ),
-      ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }

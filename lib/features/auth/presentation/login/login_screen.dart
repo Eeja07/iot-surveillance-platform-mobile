@@ -70,8 +70,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     'MiotVision',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   AppSpacing.vSm,
                   Text(
