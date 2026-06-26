@@ -16,6 +16,7 @@ class DioClient {
         ),
       ) {
     _dio.interceptors.add(interceptor);
+    _dio.interceptors.add(RetryInterceptor(dio: _dio));
   }
 
   Future<ApiResult<T>> get<T>(
@@ -129,5 +130,55 @@ class DioClient {
     } catch (e) {
       return ApiFailure(UnknownException(e.toString()));
     }
+  }
+}
+
+class RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final int maxRetries;
+  final Duration retryInterval;
+
+  RetryInterceptor({
+    required this.dio,
+    this.maxRetries = 3,
+    this.retryInterval = const Duration(seconds: 1),
+  });
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final requestOptions = err.requestOptions;
+
+    final isNetworkError =
+        err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.connectionError;
+
+    if (!isNetworkError) {
+      return super.onError(err, handler);
+    }
+
+    final extra = requestOptions.extra;
+    final int retryCount = (extra['retry_count'] ?? 0) as int;
+
+    if (retryCount < maxRetries) {
+      final nextRetryCount = retryCount + 1;
+      requestOptions.extra['retry_count'] = nextRetryCount;
+
+      final delay = retryInterval * nextRetryCount;
+      await Future.delayed(delay);
+
+      try {
+        final response = await dio.fetch(requestOptions);
+        return handler.resolve(response);
+      } on DioException catch (e) {
+        return super.onError(e, handler);
+      }
+    }
+
+    return super.onError(err, handler);
   }
 }

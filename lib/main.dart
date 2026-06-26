@@ -7,12 +7,53 @@ import 'services/auth_service.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/observability/observability_service.dart';
+import 'core/observability/error_boundary.dart';
+import 'core/observability/lifecycle_observer.dart';
+import 'core/observability/offline_indicator.dart';
+
+class AppProviderObserver extends ProviderObserver {
+  @override
+  void didUpdateProvider(
+    ProviderBase<Object?> provider,
+    Object? previousValue,
+    Object? newValue,
+    ProviderContainer container,
+  ) {
+    if (newValue is AsyncError) {
+      ObservabilityService.instance.reportError(
+        newValue.error,
+        newValue.stackTrace,
+        hint:
+            'Provider update failed: ${provider.name ?? provider.runtimeType}',
+      );
+    }
+  }
+
+  @override
+  void providerDidFail(
+    ProviderBase<Object?> provider,
+    Object error,
+    StackTrace stackTrace,
+    ProviderContainer container,
+  ) {
+    ObservabilityService.instance.reportError(
+      error,
+      stackTrace,
+      hint: 'Provider error: ${provider.name ?? provider.runtimeType}',
+    );
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ObservabilityService.instance.setupGlobalErrorHandlers();
+
   // AppLocator must initialize before ProviderScope reads from it.
   await AppLocator.instance.initialize();
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    ProviderScope(observers: [AppProviderObserver()], child: const MyApp()),
+  );
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -106,13 +147,22 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routerConfig: AppRouter.router,
-      title: 'MiotVision',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
+    return ErrorBoundary(
+      child: LifecycleObserver(
+        onResumed: () {
+          ObservabilityService.instance.info('App resumed, syncing systems');
+        },
+        child: OfflineIndicator(
+          child: MaterialApp.router(
+            routerConfig: AppRouter.router,
+            title: 'MiotVision',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: _themeMode,
+          ),
+        ),
+      ),
     );
   }
 }
