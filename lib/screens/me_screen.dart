@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/user_service.dart';
 import '../config/app_colors.dart';
-import '../core/di/injection.dart';
+import '../core/di/providers.dart';
+import '../core/di/auth_provider.dart';
 import '../core/router/app_routes.dart';
 import '../features/auth/domain/model/user_model.dart';
 
-class MeScreen extends StatefulWidget {
+class MeScreen extends ConsumerStatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
 
@@ -17,10 +19,10 @@ class MeScreen extends StatefulWidget {
   });
 
   @override
-  _MeScreenState createState() => _MeScreenState();
+  ConsumerState<MeScreen> createState() => _MeScreenState();
 }
 
-class _MeScreenState extends State<MeScreen> {
+class _MeScreenState extends ConsumerState<MeScreen> {
   final UserService _userService = UserService();
 
   final _nameController = TextEditingController();
@@ -43,7 +45,7 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
     if (token != null) {
       final user = await _userService.getUser(token);
@@ -81,9 +83,7 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   void _logout() async {
-    final authController = AppLocator.instance.authController;
-
-    await authController.logout();
+    await ref.read(authProvider.notifier).logout();
 
     if (mounted) {
       context.go(AppRoutes.login);
@@ -125,7 +125,7 @@ class _MeScreenState extends State<MeScreen> {
 
   Future<void> _updateProfile(String name, String email) async {
     setState(() => _isLoading = true);
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
     if (token != null) {
       final success = await _userService.updateUser(token, name, email);
@@ -182,7 +182,7 @@ class _MeScreenState extends State<MeScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
     if (token != null) {
       final result = await _userService.changePassword(

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/camera_service.dart';
 import '../config/app_colors.dart';
 import '../models/camera_model.dart';
 import '../utils/toast_utils.dart';
-import '../core/di/injection.dart';
+import '../core/di/providers.dart';
 import '../core/router/app_routes.dart';
+import '../features/dashboard/providers/dashboard_provider.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
   final ValueNotifier<bool>? refreshNotifier;
@@ -22,18 +24,18 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final CameraService _cameraService = CameraService();
   static final Map<int, String> _thumbnailCache = {};
 
   List<CameraGroup> _allCameraGroups = [];
   List<CameraGroup> _filteredCameraGroups = [];
 
-  bool _isLoading = true;
-  String? _errorMessage;
+  bool _isDeleting = false;
+
   Timer? _statusRefreshTimer;
 
   @override
@@ -122,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshThumbnails() async {
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
     if (token == null) return;
 
@@ -158,117 +160,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchCamerasFromApi({bool isSilent = false}) async {
-    if (!isSilent && _allCameraGroups.isEmpty) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-    }
-
-    final sessionService = AppLocator.instance.sessionService;
-    final token = await sessionService.getAccessToken();
-
-    if (token != null) {
-      try {
-        final groups = await _cameraService.fetchCameraGroups(token);
-
-        for (var group in groups) {
-          for (int i = 0; i < group.cameras.length; i++) {
-            final cam = group.cameras[i];
-            if (cam.thumbnailUrl == null || cam.thumbnailUrl!.isEmpty) {
-              final localThumb = _thumbnailCache[cam.id];
-              if (localThumb != null && localThumb.isNotEmpty) {
-                group.cameras[i] = Camera(
-                  id: cam.id,
-                  name: cam.name,
-                  isOnline: cam.isOnline,
-                  groupName: cam.groupName,
-                  groupId: cam.groupId,
-                  deviceId: cam.deviceId,
-                  description: cam.description,
-                  thumbnailUrl: localThumb,
-                );
-              }
-            }
-          }
-        }
-
-        final nonEmptyGroups = groups.where((g) {
-          return g.cameras.isNotEmpty;
-        }).toList();
-
-        Map<String, bool> expansionStates = {};
-        for (var oldG in _allCameraGroups) {
-          expansionStates[oldG.name] = oldG.isExpanded;
-        }
-
-        for (var newG in nonEmptyGroups) {
-          if (expansionStates.containsKey(newG.name)) {
-            newG.isExpanded = expansionStates[newG.name]!;
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _allCameraGroups = nonEmptyGroups;
-
-            if (_searchController.text.isEmpty) {
-              _filteredCameraGroups = nonEmptyGroups;
-            } else {
-              _reapplySearchFilter();
-            }
-
-            _isLoading = false;
-          });
-        }
-      } catch (e) {
-        if (!isSilent) {
-          if (e.toString().contains('UNAUTHORIZED')) {
-            _forceLogout();
-          } else {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-                _errorMessage = 'Gagal memuat data.';
-              });
-            }
-          }
-        }
-      }
-    } else {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _reapplySearchFilter() {
-    final query = _searchController.text.toLowerCase();
-    _filteredCameraGroups = [];
-
-    for (var group in _allCameraGroups) {
-      bool groupMatch = group.name.toLowerCase().contains(query);
-      List<Camera> matchingCameras = group.cameras.where((cam) {
-        final nameMatch = cam.name.toLowerCase().contains(query);
-        final descMatch =
-            cam.description != null &&
-            cam.description!.toLowerCase().contains(query);
-        return nameMatch || descMatch;
-      }).toList();
-
-      if (groupMatch || matchingCameras.isNotEmpty) {
-        _filteredCameraGroups.add(
-          CameraGroup(
-            id: group.id,
-            name: group.name,
-            cameras: groupMatch ? group.cameras : matchingCameras,
-            isExpanded: true,
-          ),
-        );
+    try {
+      await ref.read(dashboardProvider.notifier).refresh(isSilent: isSilent);
+    } catch (e) {
+      if (!isSilent && e.toString().contains('UNAUTHORIZED')) {
+        _forceLogout();
       }
     }
   }
 
   void _forceLogout() async {
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     await sessionService.clearSession();
     if (mounted) {
       context.go(AppRoutes.login);
@@ -287,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
 
-    final sessionService = AppLocator.instance.sessionService;
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
 
     if (token != null) {
@@ -306,8 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _deleteCameraProcess(Camera camera) async {
-    setState(() => _isLoading = true);
-    final sessionService = AppLocator.instance.sessionService;
+    setState(() => _isDeleting = true);
+    final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
 
     if (token != null) {
@@ -317,14 +219,16 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (mounted) {
+        setState(() => _isDeleting = false);
         if (result['success']) {
           ToastUtils.show(context, result['message'], isError: false);
           _fetchCamerasFromApi();
         } else {
-          setState(() => _isLoading = false);
           ToastUtils.show(context, result['message'], isError: true);
         }
       }
+    } else {
+      if (mounted) setState(() => _isDeleting = false);
     }
   }
 
@@ -454,6 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dashboardAsync = ref.watch(dashboardProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -499,27 +404,95 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(child: Text(_errorMessage!))
-          : _filteredCameraGroups.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-              onRefresh: _refreshData,
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                itemCount: _filteredCameraGroups.length,
-                itemBuilder: (context, index) {
-                  final group = _filteredCameraGroups[index];
+      body: Stack(
+        children: [
+          dashboardAsync.when(
+            data: (dashboardState) {
+              _allCameraGroups = dashboardState.groups;
+              final query = _searchController.text.toLowerCase();
+              if (query.isEmpty) {
+                _filteredCameraGroups = _allCameraGroups;
+              } else {
+                _filteredCameraGroups = dashboardState.filteredGroups;
+              }
 
-                  if (group.name == 'Tanpa Grup' || group.id == null) {
-                    return _buildUngroupedSection(group);
-                  }
-                  return _buildGroupCard(group, forceExpanded: _isSearching);
-                },
+              if (_filteredCameraGroups.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              return RefreshIndicator(
+                onRefresh: _refreshData,
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                  itemCount: _filteredCameraGroups.length,
+                  itemBuilder: (context, index) {
+                    final group = _filteredCameraGroups[index];
+
+                    if (group.name == 'Tanpa Grup' || group.id == null) {
+                      return _buildUngroupedSection(group);
+                    }
+                    return _buildGroupCard(group, forceExpanded: _isSearching);
+                  },
+                ),
+              );
+            },
+            loading: () {
+              if (_allCameraGroups.isNotEmpty) {
+                return RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    itemCount: _filteredCameraGroups.length,
+                    itemBuilder: (context, index) {
+                      final group = _filteredCameraGroups[index];
+
+                      if (group.name == 'Tanpa Grup' || group.id == null) {
+                        return _buildUngroupedSection(group);
+                      }
+                      return _buildGroupCard(
+                        group,
+                        forceExpanded: _isSearching,
+                      );
+                    },
+                  ),
+                );
+              }
+              return const Center(child: CircularProgressIndicator());
+            },
+            error: (err, stack) {
+              if (_allCameraGroups.isNotEmpty) {
+                return RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    itemCount: _filteredCameraGroups.length,
+                    itemBuilder: (context, index) {
+                      final group = _filteredCameraGroups[index];
+
+                      if (group.name == 'Tanpa Grup' || group.id == null) {
+                        return _buildUngroupedSection(group);
+                      }
+                      return _buildGroupCard(
+                        group,
+                        forceExpanded: _isSearching,
+                      );
+                    },
+                  ),
+                );
+              }
+              return Center(child: Text(err.toString()));
+            },
+          ),
+          // Delete-in-progress overlay
+          if (_isDeleting)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black26,
+                child: Center(child: CircularProgressIndicator()),
               ),
             ),
+        ],
+      ),
     );
   }
 
