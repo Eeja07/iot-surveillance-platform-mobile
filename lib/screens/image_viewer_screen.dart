@@ -29,8 +29,8 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
   late int _currentIndex;
   bool _isProcessing = false;
 
-
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   TapDownDetails? _doubleTapDetails;
   bool _isZoomed = false;
 
@@ -39,7 +39,6 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
     super.initState();
     _pageController = PageController(initialPage: widget.initialIndex);
     _currentIndex = widget.initialIndex;
-
 
     _transformationController.addListener(_onTransformationChange);
   }
@@ -53,7 +52,6 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
   }
 
   void _onTransformationChange() {
-
     final scale = _transformationController.value.getMaxScaleOnAxis();
     if (scale > 1.01 && !_isZoomed) {
       setState(() => _isZoomed = true);
@@ -62,12 +60,13 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
     }
   }
 
-
   Future<String?> _downloadFile(String url, {String? customFileName}) async {
     try {
       final tempDir = await getTemporaryDirectory();
 
-      final fileName = customFileName ?? 'temp_view_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          customFileName ??
+          'temp_view_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final savePath = '${tempDir.path}/$fileName';
 
       await Dio().download(url, savePath);
@@ -86,20 +85,21 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
 
       final path = await _downloadFile(currentUrl);
       if (path != null) {
-        await Share.shareXFiles(
-          [XFile(path)],
-          text: 'Rekaman CCTV - ${widget.cameraName} (${widget.title})'
-        );
+        await Share.shareXFiles([
+          XFile(path),
+        ], text: 'Rekaman CCTV - ${widget.cameraName} (${widget.title})');
       } else {
         await Share.share('Lihat rekaman CCTV ini: $currentUrl');
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membagikan: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal membagikan: $e')));
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
-
 
   void _saveImage() async {
     if (_isProcessing) return;
@@ -109,51 +109,54 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
 
       final currentUrl = widget.imageUrls[_currentIndex];
 
-
-
-      String cleanCameraName = widget.cameraName.replaceAll(RegExp(r'[^\w\s\-]'), '').trim().replaceAll(' ', '_');
-
+      String cleanCameraName = widget.cameraName
+          .replaceAll(RegExp(r'[^\w\s\-]'), '')
+          .trim()
+          .replaceAll(' ', '_');
 
       String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
 
-
       String finalFileName = '${cleanCameraName}_$timestamp.jpg';
 
-
-      final path = await _downloadFile(currentUrl, customFileName: finalFileName);
+      final path = await _downloadFile(
+        currentUrl,
+        customFileName: finalFileName,
+      );
 
       if (path != null) {
-
-
         await Gal.putImage(path, album: 'MiotVision Cam');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Tersimpan di Album "MiotVision Cam"\nNama: $finalFileName'),
-              backgroundColor: Colors.green
+              content: Text(
+                'Tersimpan di Album "MiotVision Cam"\nNama: $finalFileName',
+              ),
+              backgroundColor: Colors.green,
             ),
           );
         }
-
 
         final file = File(path);
         if (await file.exists()) await file.delete();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-
   void _handleDoubleTap() {
     if (_transformationController.value != Matrix4.identity()) {
       _transformationController.value = Matrix4.identity();
-
     } else {
       final position = _doubleTapDetails!.localPosition;
 
@@ -173,11 +176,16 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            Text(widget.cameraName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              widget.cameraName,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             Text(
               'Pukul ${widget.title} • ${_currentIndex + 1}/${widget.imageUrls.length}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -190,7 +198,9 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
       body: PageView.builder(
         controller: _pageController,
 
-        physics: _isZoomed ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+        physics: _isZoomed
+            ? const NeverScrollableScrollPhysics()
+            : const BouncingScrollPhysics(),
         itemCount: widget.imageUrls.length,
         onPageChanged: (index) {
           setState(() {
@@ -217,7 +227,15 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
                     fit: BoxFit.contain,
                     loadingBuilder: (ctx, child, progress) {
                       if (progress == null) return child;
-                      return Center(child: CircularProgressIndicator(value: progress.expectedTotalBytes != null ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes! : null, color: Colors.white));
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: progress.expectedTotalBytes != null
+                              ? progress.cumulativeBytesLoaded /
+                                    progress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
                     },
                   ),
                 ),

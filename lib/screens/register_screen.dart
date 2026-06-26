@@ -13,7 +13,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
@@ -32,16 +33,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.register(name, email, password, confirmPassword);
+    final result = await _authService.register(
+      name,
+      email,
+      password,
+      confirmPassword,
+    );
 
     setState(() => _isLoading = false);
 
     if (mounted) {
       if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
         );
-
 
         Navigator.push(
           context,
@@ -54,7 +62,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -72,7 +83,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Icon(Icons.person_add_alt_1, size: 70, color: Colors.blue),
+                const Icon(
+                  Icons.person_add_alt_1,
+                  size: 70,
+                  color: Colors.blue,
+                ),
                 const SizedBox(height: 20),
                 const Text(
                   'Buat Akun Baru',
@@ -80,12 +95,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 30),
 
-
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: 'Nama Lengkap',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     prefixIcon: const Icon(Icons.person),
                   ),
                   validator: (val) => val!.isEmpty ? 'Nama wajib diisi' : null,
@@ -96,11 +112,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     prefixIcon: const Icon(Icons.email),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (val) => val!.contains('@') ? null : 'Email tidak valid',
+                  validator: (val) =>
+                      val!.contains('@') ? null : 'Email tidak valid',
                 ),
                 const SizedBox(height: 16),
 
@@ -108,15 +127,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _passwordController,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   obscureText: _obscurePassword,
-                  validator: (val) => val!.length < 6 ? 'Minimal 6 karakter' : null,
+                  validator: (val) =>
+                      val!.length < 6 ? 'Minimal 6 karakter' : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -124,15 +151,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _confirmPasswordController,
                   decoration: InputDecoration(
                     labelText: 'Konfirmasi Password',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     prefixIcon: const Icon(Icons.lock_clock),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                      icon: Icon(
+                        _obscureConfirm
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
                   ),
                   obscureText: _obscureConfirm,
-                  validator: (val) => val != _passwordController.text ? 'Password tidak cocok' : null,
+                  validator: (val) => val != _passwordController.text
+                      ? 'Password tidak cocok'
+                      : null,
                 ),
 
                 const SizedBox(height: 30),
@@ -145,11 +181,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: _handleRegister,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
                           ),
-                          child: const Text('Daftar Sekarang', style: TextStyle(fontSize: 16)),
+                          child: const Text(
+                            'Daftar Sekarang',
+                            style: TextStyle(fontSize: 16),
+                          ),
                         ),
                       ),
 

@@ -1,5 +1,3 @@
-
-
 class Camera {
   final dynamic id;
   final String name;
@@ -10,13 +8,9 @@ class Camera {
   final String? description;
   final String? thumbnailUrl;
 
-
   static const String _imageBaseUrl = 'https://cctv.miot-its.org';
 
   factory Camera.fromJson(Map<String, dynamic> json) {
-
-
-
     String? thumb = json['thumbnail_url'];
     if (thumb != null && thumb.isNotEmpty && !thumb.startsWith('http')) {
       thumb = '$_imageBaseUrl$thumb';
@@ -26,7 +20,9 @@ class Camera {
       id: json['id'],
       name: json['name'] ?? 'Kamera Tanpa Nama',
       isOnline: json['is_active'] == true,
-      groupName: (json['group_name'] != null && json['group_name'].toString().isNotEmpty)
+      groupName:
+          (json['group_name'] != null &&
+              json['group_name'].toString().isNotEmpty)
           ? json['group_name']
           : 'Tanpa Grup',
       groupId: json['group_id'],
@@ -68,11 +64,7 @@ class CameraGroup {
       return Camera.fromJson(c);
     }).toList();
 
-    return CameraGroup(
-      id: gId,
-      name: gName,
-      cameras: parsedCameras,
-    );
+    return CameraGroup(id: gId, name: gName, cameras: parsedCameras);
   }
 
   CameraGroup({

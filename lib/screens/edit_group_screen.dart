@@ -8,11 +8,7 @@ class EditGroupScreen extends StatefulWidget {
   final CameraGroup group;
   final Function(bool) onSave;
 
-  const EditGroupScreen({
-    super.key,
-    required this.group,
-    required this.onSave,
-  });
+  const EditGroupScreen({super.key, required this.group, required this.onSave});
 
   @override
   _EditGroupScreenState createState() => _EditGroupScreenState();
@@ -50,10 +46,13 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
 
     if (token != null) {
       try {
-        final List<CameraGroup> groups = await _cameraService.fetchCameraGroups(token);
+        final List<CameraGroup> groups = await _cameraService.fetchCameraGroups(
+          token,
+        );
         final CameraGroup currentGroupRef = groups.firstWhere(
           (g) => g.id == widget.group.id,
-          orElse: () => CameraGroup(name: 'Current', cameras: [], id: widget.group.id),
+          orElse: () =>
+              CameraGroup(name: 'Current', cameras: [], id: widget.group.id),
         );
         final CameraGroup ungroupedRef = groups.firstWhere(
           (g) => g.name == 'Tanpa Grup' || g.id == null,
@@ -62,7 +61,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
 
         final List<Camera> combinedCameras = [
           ...currentGroupRef.cameras,
-          ...ungroupedRef.cameras
+          ...ungroupedRef.cameras,
         ];
 
         if (mounted) {
@@ -95,13 +94,17 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
         final result = await _cameraService.updateGroupApi(
           token,
           widget.group.name,
-          newGroupName
+          newGroupName,
         );
 
         if (result['success'] != true) {
-           setState(() => _isSubmitting = false);
-           ToastUtils.show(context, result['message'] ?? 'Gagal mengganti nama grup.', isError: true);
-           return;
+          setState(() => _isSubmitting = false);
+          ToastUtils.show(
+            context,
+            result['message'] ?? 'Gagal mengganti nama grup.',
+            isError: true,
+          );
+          return;
         }
       }
 
@@ -114,10 +117,12 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
           final res = await _cameraService.assignCameraToGroup(
             token,
             newGroupName,
-            cameraId is int ? cameraId : int.parse(cameraId.toString())
+            cameraId is int ? cameraId : int.parse(cameraId.toString()),
           );
-          if (res['success'] == true) successCount++;
-          else errorCount++;
+          if (res['success'] == true)
+            successCount++;
+          else
+            errorCount++;
         }
       }
 
@@ -127,10 +132,12 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
       for (var removedId in removedIds) {
         final res = await _cameraService.removeCameraFromGroup(
           token,
-          removedId is int ? removedId : int.parse(removedId.toString())
+          removedId is int ? removedId : int.parse(removedId.toString()),
         );
-        if (res['success'] == true) successCount++;
-        else errorCount++;
+        if (res['success'] == true)
+          successCount++;
+        else
+          errorCount++;
       }
 
       if (mounted) {
@@ -158,85 +165,91 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Grup')),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _groupNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nama Grup',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _groupNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Nama Grup',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
+                  Text(
+                    'Anggota Grup:',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
 
-                Text(
-                  'Anggota Grup:',
-                  style: Theme.of(context).textTheme.titleMedium
-                ),
-                const SizedBox(height: 8),
+                  if (_availableCameras.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text("Tidak ada kamera lain yang tersedia."),
+                    ),
 
-                if (_availableCameras.isEmpty)
-                   const Padding(
-                     padding: EdgeInsets.all(16.0),
-                     child: Text("Tidak ada kamera lain yang tersedia."),
-                   ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _availableCameras.length,
+                    itemBuilder: (context, index) {
+                      final camera = _availableCameras[index];
+                      final isSelected = _selectedDeviceIds.contains(camera.id);
 
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _availableCameras.length,
-                  itemBuilder: (context, index) {
-                    final camera = _availableCameras[index];
-                    final isSelected = _selectedDeviceIds.contains(camera.id);
+                      String subtitle = "";
+                      if (camera.groupName == 'Tanpa Grup') {
+                        subtitle = "Belum memiliki grup";
+                      } else if (camera.id != null &&
+                          widget.group.cameras.any((c) => c.id == camera.id)) {
+                        subtitle = "Anggota saat ini";
+                      }
 
-                    String subtitle = "";
-                    if (camera.groupName == 'Tanpa Grup') {
-                       subtitle = "Belum memiliki grup";
-                    } else if (camera.id != null && widget.group.cameras.any((c) => c.id == camera.id)) {
-                       subtitle = "Anggota saat ini";
-                    }
-
-                    return CheckboxListTile(
-                      title: Text(camera.name),
-                      subtitle: subtitle.isNotEmpty
-                          ? Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey))
-                          : null,
-                      value: isSelected,
-                      activeColor: Theme.of(context).primaryColor,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedDeviceIds.add(camera.id);
-                          } else {
-                            _selectedDeviceIds.remove(camera.id);
-                          }
-                        });
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                _isSubmitting
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)
+                      return CheckboxListTile(
+                        title: Text(camera.name),
+                        subtitle: subtitle.isNotEmpty
+                            ? Text(
+                                subtitle,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : null,
+                        value: isSelected,
+                        activeColor: Theme.of(context).primaryColor,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedDeviceIds.add(camera.id);
+                            } else {
+                              _selectedDeviceIds.remove(camera.id);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _isSubmitting
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: const Text('Simpan Perubahan'),
                         ),
-                        child: const Text('Simpan Perubahan'),
-                      ),
-              ],
+                ],
+              ),
             ),
-          ),
     );
   }
 }

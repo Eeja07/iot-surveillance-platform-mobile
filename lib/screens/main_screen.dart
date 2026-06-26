@@ -9,7 +9,11 @@ class MainScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
 
-  const MainScreen({super.key, required this.toggleTheme, required this.isDarkMode});
+  const MainScreen({
+    super.key,
+    required this.toggleTheme,
+    required this.isDarkMode,
+  });
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -18,7 +22,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-
   final ValueNotifier<bool> _refreshHomeNotifier = ValueNotifier(false);
 
   void _onItemTapped(int index) {
@@ -26,7 +29,6 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
-
 
   void _showAddDeviceMenu(BuildContext context) {
     showModalBottomSheet(
@@ -40,7 +42,6 @@ class _MainScreenState extends State<MainScreen> {
           ),
           child: Wrap(
             children: <Widget>[
-
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
@@ -59,7 +60,12 @@ class _MainScreenState extends State<MainScreen> {
                 title: const Text('Scan QR Code'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const QrScannerScreen()));
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const QrScannerScreen(),
+                    ),
+                  );
                   if (result == true) _triggerHomeRefresh();
                 },
               ),
@@ -68,7 +74,12 @@ class _MainScreenState extends State<MainScreen> {
                 title: const Text('Add Device Manually'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddDeviceManualScreen()));
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddDeviceManualScreen(),
+                    ),
+                  );
                   if (result == true) _triggerHomeRefresh();
                 },
               ),
@@ -76,9 +87,14 @@ class _MainScreenState extends State<MainScreen> {
                 leading: const Icon(Icons.folder_copy_outlined),
                 title: const Text('Add Group'),
                 onTap: () async {
-                    Navigator.pop(context);
-                    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddGroupScreen()));
-                    if (result == true) _triggerHomeRefresh();
+                  Navigator.pop(context);
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddGroupScreen(),
+                    ),
+                  );
+                  if (result == true) _triggerHomeRefresh();
                 },
               ),
               const SizedBox(height: 20),
@@ -95,7 +111,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+    final bool isKeyboardVisible =
+        MediaQuery.of(context).viewInsets.bottom != 0;
 
     final List<Widget> pages = [
       HomeScreen(
@@ -103,25 +120,11 @@ class _MainScreenState extends State<MainScreen> {
         isDarkMode: widget.isDarkMode,
         refreshNotifier: _refreshHomeNotifier,
       ),
-      MeScreen(
-        toggleTheme: widget.toggleTheme,
-        isDarkMode: widget.isDarkMode
-      ),
+      MeScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
     ];
 
     return Scaffold(
-
-
-
-
-
-
-
-
-
-
       body: pages[_selectedIndex],
-
 
       floatingActionButton: isKeyboardVisible
           ? null
@@ -132,27 +135,40 @@ class _MainScreenState extends State<MainScreen> {
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-
       bottomNavigationBar: isKeyboardVisible
-        ? null
-        : BottomAppBar(
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 8.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                _buildBottomNavItem(icon: Icons.home, label: 'Home', index: 0),
-                const SizedBox(width: 40),
-                _buildBottomNavItem(icon: Icons.person_outline, label: 'Me', index: 1),
-              ],
+          ? null
+          : BottomAppBar(
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 8.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  _buildBottomNavItem(
+                    icon: Icons.home,
+                    label: 'Home',
+                    index: 0,
+                  ),
+                  const SizedBox(width: 40),
+                  _buildBottomNavItem(
+                    icon: Icons.person_outline,
+                    label: 'Me',
+                    index: 1,
+                  ),
+                ],
+              ),
             ),
-          ),
     );
   }
 
-  Widget _buildBottomNavItem({required IconData icon, required String label, required int index}) {
+  Widget _buildBottomNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
     final isSelected = _selectedIndex == index;
-    final color = isSelected ? Theme.of(context).primaryColor : Theme.of(context).textTheme.bodyMedium?.color;
+    final color = isSelected
+        ? Theme.of(context).primaryColor
+        : Theme.of(context).textTheme.bodyMedium?.color;
 
     return InkWell(
       onTap: () => _onItemTapped(index),

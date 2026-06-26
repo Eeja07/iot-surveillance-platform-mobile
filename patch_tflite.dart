@@ -3,12 +3,12 @@ import 'dart:io';
 void main() async {
   print("🔍 Mencari file tensor.dart...");
 
-  String? home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+  String? home =
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
   if (home == null) {
     print("❌ Gagal menemukan direktori Home.");
     return;
   }
-
 
   String pathPart = 'hosted/pub.dev/tflite_flutter-0.10.4/lib/src/tensor.dart';
 
@@ -28,7 +28,9 @@ void main() async {
   }
 
   if (tensorFile == null) {
-    print("❌ File tidak ditemukan. Pastikan sudah menjalankan 'flutter pub get'");
+    print(
+      "❌ File tidak ditemukan. Pastikan sudah menjalankan 'flutter pub get'",
+    );
     return;
   }
 
@@ -37,15 +39,12 @@ void main() async {
   try {
     String content = await tensorFile.readAsString();
 
-
     const String badCode = '''
   Uint8List get data {
     final data = cast<Uint8>(tfliteBinding.TfLiteTensorData(_tensor));
     return UnmodifiableUint8ListView(
         data.asTypedList(tfliteBinding.TfLiteTensorByteSize(_tensor)));
   }''';
-
-
 
     const String goodCode = '''
   Uint8List get data {
@@ -54,16 +53,17 @@ void main() async {
   }''';
 
     if (content.contains('UnmodifiableUint8ListView')) {
-
       String newContent = content.replaceFirst(
         'return UnmodifiableUint8ListView(\n        data.asTypedList(tfliteBinding.TfLiteTensorByteSize(_tensor)));',
-        'return data.asTypedList(tfliteBinding.TfLiteTensorByteSize(_tensor));'
+        'return data.asTypedList(tfliteBinding.TfLiteTensorByteSize(_tensor));',
       );
 
-
       if (newContent == content) {
-         newContent = content.replaceAll('UnmodifiableUint8ListView(', '');
-         newContent = newContent.replaceAll('tfliteBinding.TfLiteTensorByteSize(_tensor)))', 'tfliteBinding.TfLiteTensorByteSize(_tensor))');
+        newContent = content.replaceAll('UnmodifiableUint8ListView(', '');
+        newContent = newContent.replaceAll(
+          'tfliteBinding.TfLiteTensorByteSize(_tensor)))',
+          'tfliteBinding.TfLiteTensorByteSize(_tensor))',
+        );
       }
 
       await tensorFile.writeAsString(newContent);
@@ -71,7 +71,6 @@ void main() async {
     } else {
       print("⚠️ File sepertinya sudah diperbaiki sebelumnya.");
     }
-
   } catch (e) {
     print("❌ Error: $e");
   }

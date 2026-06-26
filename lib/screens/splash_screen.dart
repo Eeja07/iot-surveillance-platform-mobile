@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
@@ -11,7 +10,11 @@ class SplashScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
 
-  const SplashScreen({super.key, required this.toggleTheme, required this.isDarkMode});
+  const SplashScreen({
+    super.key,
+    required this.toggleTheme,
+    required this.isDarkMode,
+  });
 
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -31,31 +34,32 @@ class _SplashScreenState extends State<SplashScreen> {
     final token = prefs.getString('token');
     final role = prefs.getString('role');
 
-
     await Future.delayed(const Duration(milliseconds: 2500));
 
     if (!mounted) return;
 
     bool isValid = false;
 
-
     if (token != null && token.isNotEmpty) {
-
       isValid = await _authService.checkTokenValidity(token);
     }
 
     if (isValid) {
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => role == 'admin'
-              ? AdminHomeScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode)
-              : MainScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
+              ? AdminHomeScreen(
+                  toggleTheme: widget.toggleTheme,
+                  isDarkMode: widget.isDarkMode,
+                )
+              : MainScreen(
+                  toggleTheme: widget.toggleTheme,
+                  isDarkMode: widget.isDarkMode,
+                ),
         ),
       );
     } else {
-
       if (token != null) {
         await prefs.clear();
       }
@@ -63,7 +67,10 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => LoginScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
+          builder: (context) => LoginScreen(
+            toggleTheme: widget.toggleTheme,
+            isDarkMode: widget.isDarkMode,
+          ),
         ),
       );
     }

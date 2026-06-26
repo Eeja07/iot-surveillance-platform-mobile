@@ -31,18 +31,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final CameraService _cameraService = CameraService();
 
-
   List<CameraGroup> _allCameraGroups = [];
   List<CameraGroup> _filteredCameraGroups = [];
-
 
   bool _isLoading = true;
   String? _errorMessage;
   Timer? _statusRefreshTimer;
 
-
   Timer? _thumbnailRefreshTimer;
-
 
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
@@ -53,30 +49,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchCamerasFromApi();
     widget.refreshNotifier?.addListener(_handleRefreshSignal);
 
+    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        _fetchCamerasFromApi(isSilent: true);
+      }
+    });
 
-    _statusRefreshTimer = Timer.periodic(
-      const Duration(seconds: 10),
-      (timer) {
-        if (mounted) {
-
-          _fetchCamerasFromApi(isSilent: true);
-        }
-      },
-    );
-
-
-    _thumbnailRefreshTimer = Timer.periodic(
-      const Duration(minutes: 5),
-      (timer) {
-        if (mounted) {
-          _refreshThumbnails();
-        }
-      },
-    );
-
+    _thumbnailRefreshTimer = Timer.periodic(const Duration(minutes: 5), (
+      timer,
+    ) {
+      if (mounted) {
+        _refreshThumbnails();
+      }
+    });
 
     Future.delayed(const Duration(seconds: 2), () => _refreshThumbnails());
-
 
     _searchController.addListener(_onSearchChanged);
   }
@@ -95,27 +82,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshThumbnails();
   }
 
-
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
-
 
     setState(() {
       if (query.isEmpty) {
         _filteredCameraGroups = List.from(_allCameraGroups);
-
-
       } else {
         _filteredCameraGroups = [];
 
         for (var group in _allCameraGroups) {
-
           bool groupMatch = group.name.toLowerCase().contains(query);
-
 
           List<Camera> matchingCameras = group.cameras.where((cam) {
             final nameMatch = cam.name.toLowerCase().contains(query);
-            final descMatch = cam.description != null &&
+            final descMatch =
+                cam.description != null &&
                 cam.description!.toLowerCase().contains(query);
             return nameMatch || descMatch;
           }).toList();
@@ -135,7 +117,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-
   Future<void> _refreshThumbnails() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -146,31 +127,31 @@ class _HomeScreenState extends State<HomeScreen> {
         final cam = group.cameras[i];
 
         try {
-          final newUrl = await _cameraService.getLatestImage(token, cam.id.toString());
+          final newUrl = await _cameraService.getLatestImage(
+            token,
+            cam.id.toString(),
+          );
 
           if (newUrl != null && mounted) {
-             await prefs.setString('thumbnail_${cam.id}', newUrl);
+            await prefs.setString('thumbnail_${cam.id}', newUrl);
 
-             setState(() {
-               group.cameras[i] = Camera(
-                 id: cam.id,
-                 name: cam.name,
-                 isOnline: cam.isOnline,
-                 groupName: cam.groupName,
-                 groupId: cam.groupId,
-                 deviceId: cam.deviceId,
-                 description: cam.description,
-                 thumbnailUrl: newUrl,
-               );
-             });
+            setState(() {
+              group.cameras[i] = Camera(
+                id: cam.id,
+                name: cam.name,
+                isOnline: cam.isOnline,
+                groupName: cam.groupName,
+                groupId: cam.groupId,
+                deviceId: cam.deviceId,
+                description: cam.description,
+                thumbnailUrl: newUrl,
+              );
+            });
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
     }
   }
-
 
   Future<void> _fetchCamerasFromApi({bool isSilent = false}) async {
     if (!isSilent && _allCameraGroups.isEmpty) {
@@ -186,7 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (token != null) {
       try {
         final groups = await _cameraService.fetchCameraGroups(token);
-
 
         for (var group in groups) {
           for (int i = 0; i < group.cameras.length; i++) {
@@ -213,13 +193,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return g.cameras.isNotEmpty;
         }).toList();
 
-
-
         Map<String, bool> expansionStates = {};
         for (var oldG in _allCameraGroups) {
           expansionStates[oldG.name] = oldG.isExpanded;
         }
-
 
         for (var newG in nonEmptyGroups) {
           if (expansionStates.containsKey(newG.name)) {
@@ -231,13 +208,9 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _allCameraGroups = nonEmptyGroups;
 
-
             if (_searchController.text.isEmpty) {
               _filteredCameraGroups = nonEmptyGroups;
             } else {
-
-
-
               _reapplySearchFilter();
             }
 
@@ -263,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   void _reapplySearchFilter() {
     final query = _searchController.text.toLowerCase();
     _filteredCameraGroups = [];
@@ -272,7 +244,8 @@ class _HomeScreenState extends State<HomeScreen> {
       bool groupMatch = group.name.toLowerCase().contains(query);
       List<Camera> matchingCameras = group.cameras.where((cam) {
         final nameMatch = cam.name.toLowerCase().contains(query);
-        final descMatch = cam.description != null &&
+        final descMatch =
+            cam.description != null &&
             cam.description!.toLowerCase().contains(query);
         return nameMatch || descMatch;
       }).toList();
@@ -296,10 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) => LoginScreen(
-          toggleTheme: () {},
-          isDarkMode: false,
-        ),
+        builder: (context) =>
+            LoginScreen(toggleTheme: () {}, isDarkMode: false),
       ),
       (Route<dynamic> route) => false,
     );
@@ -309,7 +280,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _fetchCamerasFromApi();
     _refreshThumbnails();
   }
-
 
   void _deleteGroupProcess(CameraGroup group) async {
     showDialog(
@@ -358,7 +328,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-
 
   void _showGroupMenu(BuildContext context, CameraGroup group) {
     showModalBottomSheet(
@@ -493,7 +462,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -519,14 +487,12 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: () {
               if (_isSearching) {
-
                 _searchController.clear();
                 setState(() {
                   _isSearching = false;
                   _filteredCameraGroups = List.from(_allCameraGroups);
                 });
               } else {
-
                 setState(() {
                   _isSearching = true;
                 });
@@ -541,33 +507,30 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: widget.toggleTheme,
               tooltip: isDark ? 'Mode Terang' : 'Mode Gelap',
             ),
-          ]
+          ],
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
-              : _filteredCameraGroups.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: _refreshData,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                        itemCount: _filteredCameraGroups.length,
-                        itemBuilder: (context, index) {
-                          final group = _filteredCameraGroups[index];
+          ? Center(child: Text(_errorMessage!))
+          : _filteredCameraGroups.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: _refreshData,
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                itemCount: _filteredCameraGroups.length,
+                itemBuilder: (context, index) {
+                  final group = _filteredCameraGroups[index];
 
-                          if (group.name == 'Tanpa Grup' || group.id == null) {
-                            return _buildUngroupedSection(group);
-                          }
-                          return _buildGroupCard(
-                            group,
-                            forceExpanded: _isSearching,
-                          );
-                        },
-                      ),
-                    ),
+                  if (group.name == 'Tanpa Grup' || group.id == null) {
+                    return _buildUngroupedSection(group);
+                  }
+                  return _buildGroupCard(group, forceExpanded: _isSearching);
+                },
+              ),
+            ),
     );
   }
 
@@ -576,11 +539,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.videocam_off_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
+          const Icon(Icons.videocam_off_outlined, size: 80, color: Colors.grey),
           const SizedBox(height: 16),
           Text(
             _isSearching
@@ -593,8 +552,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: _fetchCamerasFromApi,
               child: const Text('Refresh'),
-            )
-          ]
+            ),
+          ],
         ],
       ),
     );
@@ -608,22 +567,18 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
           const Divider(),
           Padding(
-            padding: const EdgeInsets.only(
-              left: 4.0,
-              bottom: 8.0,
-              top: 8.0,
-            ),
+            padding: const EdgeInsets.only(left: 4.0, bottom: 8.0, top: 8.0),
             child: Text(
               "Kamera Lainnya",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
-                  ),
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+              ),
             ),
           ),
           _buildCameraGrid(group.cameras),
           const SizedBox(height: 16),
-        ]
+        ],
       ],
     );
   }
@@ -692,9 +647,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               group.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           IconButton(
@@ -739,8 +694,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCameraCard(Camera camera, {bool isHorizontal = false}) {
     final double? cardWidth = isHorizontal ? 160 : null;
-    final Color statusColor =
-        camera.isOnline ? AppColors.success : AppColors.danger;
+    final Color statusColor = camera.isOnline
+        ? AppColors.success
+        : AppColors.danger;
 
     return SizedBox(
       width: cardWidth,
@@ -771,10 +727,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-
               Container(
                 color: Theme.of(context).cardTheme.color?.withAlpha(40),
-                child: (camera.thumbnailUrl != null &&
+                child:
+                    (camera.thumbnailUrl != null &&
                         camera.thumbnailUrl!.isNotEmpty)
                     ? Image.network(
                         camera.thumbnailUrl!,
@@ -798,7 +754,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 strokeWidth: 2,
                                 value: progress.expectedTotalBytes != null
                                     ? progress.cumulativeBytesLoaded /
-                                        progress.expectedTotalBytes!
+                                          progress.expectedTotalBytes!
                                     : null,
                               ),
                             ),
@@ -813,7 +769,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
               ),
-
 
               Positioned(
                 bottom: 0,
@@ -834,7 +789,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-
               Positioned(
                 top: 8,
                 right: 8,
@@ -850,12 +804,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.black.withOpacity(0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
-                      )
+                      ),
                     ],
                   ),
                 ),
               ),
-
 
               Positioned(
                 bottom: 8,
@@ -867,9 +820,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    shadows: [
-                      Shadow(color: Colors.black, blurRadius: 2),
-                    ],
+                    shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                   ),
                   textAlign: TextAlign.left,
                   maxLines: 1,

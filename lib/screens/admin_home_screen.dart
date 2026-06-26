@@ -1,17 +1,14 @@
-
-
-
-
-
-
-
 import 'package:flutter/material.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
 
-  const AdminHomeScreen({super.key, required this.toggleTheme, required this.isDarkMode});
+  const AdminHomeScreen({
+    super.key,
+    required this.toggleTheme,
+    required this.isDarkMode,
+  });
 
   @override
   _AdminHomeScreenState createState() => _AdminHomeScreenState();
@@ -27,7 +24,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         title: Text('Admin Dashboard'),
         actions: [
           IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round),
+            icon: Icon(
+              widget.isDarkMode
+                  ? Icons.wb_sunny_outlined
+                  : Icons.nightlight_round,
+            ),
             onPressed: widget.toggleTheme,
           ),
         ],
@@ -104,7 +105,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  Widget _buildAdminCard({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildAdminCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Card(
       child: InkWell(
         onTap: onTap,

@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
     required this.toggleTheme,
-    required this.isDarkMode
+    required this.isDarkMode,
   });
 
   @override
@@ -42,14 +42,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-
     final result = await _authService.login(email, password);
 
     setState(() => _isLoading = false);
 
     if (mounted) {
       if (result['success']) {
-
         final prefs = await SharedPreferences.getInstance();
         final String token = result['token'];
         final String role = result['role'];
@@ -58,33 +56,37 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('role', role);
         await prefs.setString('saved_email', email);
 
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => role == 'admin'
-                ? AdminHomeScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode)
-                : MainScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
+                ? AdminHomeScreen(
+                    toggleTheme: widget.toggleTheme,
+                    isDarkMode: widget.isDarkMode,
+                  )
+                : MainScreen(
+                    toggleTheme: widget.toggleTheme,
+                    isDarkMode: widget.isDarkMode,
+                  ),
           ),
         );
       } else {
-
         String errorMessage = result['message'].toString();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
 
-
         if (errorMessage.toLowerCase().contains('belum diverifikasi') ||
             errorMessage.toLowerCase().contains('verify your email') ||
             errorMessage.toLowerCase().contains('not verified')) {
-
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text("Akun Belum Aktif"),
-              content: Text("Email $email belum diverifikasi. Apakah Anda ingin memasukkan kode OTP sekarang?"),
+              content: Text(
+                "Email $email belum diverifikasi. Apakah Anda ingin memasukkan kode OTP sekarang?",
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
@@ -116,7 +118,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: Stack(
         children: [
           Center(
@@ -125,7 +126,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-
                   SizedBox(
                     width: 140,
                     height: 140,
@@ -146,7 +146,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                       labelText: 'Email',
                       prefixIcon: const Icon(Icons.email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -157,10 +159,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureText = !_obscureText),
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureText = !_obscureText),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     obscureText: _obscureText,
                   ),
@@ -171,7 +180,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
                         );
                       },
                       child: const Text('Lupa Password?'),
@@ -184,7 +195,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: _handleLogin,
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: const Text('Login'),
                         ),
@@ -197,7 +210,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
                           );
                         },
                         child: const Text('Daftar'),
@@ -209,13 +224,14 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-
           Positioned(
             top: 40,
             right: 16,
             child: IconButton(
               icon: Icon(
-                widget.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round,
+                widget.isDarkMode
+                    ? Icons.wb_sunny_outlined
+                    : Icons.nightlight_round,
                 size: 28,
               ),
               onPressed: widget.toggleTheme,

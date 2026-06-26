@@ -25,9 +25,9 @@ class _EditCameraScreenState extends State<EditCameraScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.camera.name);
 
-
-
-    _descriptionController = TextEditingController(text: widget.camera.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.camera.description ?? '',
+    );
   }
 
   @override

@@ -4,17 +4,20 @@ import '../config/app_colors.dart';
 class ToastUtils {
   static OverlayEntry? _currentEntry;
 
-
-  static void show(BuildContext context, String message, {bool isError = false}) {
-
+  static void show(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
     _currentEntry?.remove();
     _currentEntry = null;
 
     final overlay = Overlay.of(context);
 
-
     final Color bgColor = isError ? AppColors.danger : AppColors.success;
-    final IconData icon = isError ? Icons.error_outline : Icons.check_circle_outline;
+    final IconData icon = isError
+        ? Icons.error_outline
+        : Icons.check_circle_outline;
 
     final entry = OverlayEntry(
       builder: (context) => Positioned(
@@ -71,10 +74,8 @@ class ToastUtils {
       ),
     );
 
-
     overlay.insert(entry);
     _currentEntry = entry;
-
 
     Future.delayed(const Duration(seconds: 3), () {
       if (_currentEntry == entry) {

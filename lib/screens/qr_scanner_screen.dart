@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'add_device_manual_screen.dart';
@@ -16,11 +9,11 @@ class QrScannerScreen extends StatefulWidget {
   _QrScannerScreenState createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProviderStateMixin {
+class _QrScannerScreenState extends State<QrScannerScreen>
+    with SingleTickerProviderStateMixin {
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isScanCompleted = false;
   late AnimationController _animationController;
-
 
   bool _showSuccessIndicator = false;
 
@@ -51,12 +44,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
       });
       _animationController.stop();
 
-
-
-
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) {
-
           Navigator.pop(context);
           Navigator.push(
             context,
@@ -105,7 +94,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
             ),
           ),
 
-
           AnimatedOpacity(
             opacity: _showSuccessIndicator ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 400),
@@ -133,13 +121,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
               ),
             ),
           ),
-
         ],
       ),
     );
   }
 
-  Widget _buildControlButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
     return CircleAvatar(
       radius: 30,
       backgroundColor: Colors.black.withOpacity(0.4),
@@ -151,8 +141,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> with SingleTickerProv
   }
 }
 
-
-
 class ScannerOverlay extends StatelessWidget {
   final Animation<double> animation;
 
@@ -160,51 +148,61 @@ class ScannerOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final double scanAreaSize = MediaQuery.of(context).size.width * 0.7;
     const double cornerLength = 30.0;
     const double cornerThickness = 4.0;
 
     return Stack(
       children: [
-
-
-
         Center(
           child: SizedBox(
             width: scanAreaSize,
             height: scanAreaSize,
             child: Stack(
               children: [
-
                 Positioned(
                   top: 0,
                   left: 0,
-                  child: _buildCorner(cornerThickness, cornerLength, isTopLeft: true),
+                  child: _buildCorner(
+                    cornerThickness,
+                    cornerLength,
+                    isTopLeft: true,
+                  ),
                 ),
 
                 Positioned(
                   top: 0,
                   right: 0,
-                  child: _buildCorner(cornerThickness, cornerLength, isTopRight: true),
+                  child: _buildCorner(
+                    cornerThickness,
+                    cornerLength,
+                    isTopRight: true,
+                  ),
                 ),
 
                 Positioned(
                   bottom: 0,
                   left: 0,
-                  child: _buildCorner(cornerThickness, cornerLength, isBottomLeft: true),
+                  child: _buildCorner(
+                    cornerThickness,
+                    cornerLength,
+                    isBottomLeft: true,
+                  ),
                 ),
 
                 Positioned(
                   bottom: 0,
                   right: 0,
-                  child: _buildCorner(cornerThickness, cornerLength, isBottomRight: true),
+                  child: _buildCorner(
+                    cornerThickness,
+                    cornerLength,
+                    isBottomRight: true,
+                  ),
                 ),
               ],
             ),
           ),
         ),
-
 
         Center(
           child: AnimatedBuilder(
@@ -243,8 +241,9 @@ class ScannerOverlay extends StatelessWidget {
     );
   }
 
-
-  Widget _buildCorner(double thickness, double length, {
+  Widget _buildCorner(
+    double thickness,
+    double length, {
     bool isTopLeft = false,
     bool isTopRight = false,
     bool isBottomLeft = false,
@@ -265,7 +264,6 @@ class ScannerOverlay extends StatelessWidget {
     );
   }
 }
-
 
 class _CornerPainter extends CustomPainter {
   final double thickness;

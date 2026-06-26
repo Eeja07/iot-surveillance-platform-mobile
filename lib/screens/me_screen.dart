@@ -13,7 +13,7 @@ class MeScreen extends StatefulWidget {
   const MeScreen({
     super.key,
     required this.toggleTheme,
-    required this.isDarkMode
+    required this.isDarkMode,
   });
 
   @override
@@ -63,7 +63,7 @@ class _MeScreenState extends State<MeScreen> {
     final name = prefs.getString('user_name');
     final email = prefs.getString('user_email');
     if (name != null) {
-      if(mounted) {
+      if (mounted) {
         setState(() {
           _nameController.text = name;
           _emailController.text = email ?? '';
@@ -78,13 +78,12 @@ class _MeScreenState extends State<MeScreen> {
     await prefs.clear();
     if (!mounted) return;
 
-
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => LoginScreen(
           toggleTheme: widget.toggleTheme,
-          isDarkMode: widget.isDarkMode
-        )
+          isDarkMode: widget.isDarkMode,
+        ),
       ),
       (Route<dynamic> route) => false,
     );
@@ -98,10 +97,16 @@ class _MeScreenState extends State<MeScreen> {
         title: Text('Ubah $title'),
         content: TextField(
           controller: editController,
-          decoration: InputDecoration(labelText: '$title Baru', border: const OutlineInputBorder()),
+          decoration: InputDecoration(
+            labelText: '$title Baru',
+            border: const OutlineInputBorder(),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -130,21 +135,39 @@ class _MeScreenState extends State<MeScreen> {
         });
         await prefs.setString('user_name', name);
         await prefs.setString('user_email', email);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil berhasil diperbarui')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil berhasil diperbarui')),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal memperbarui profil'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memperbarui profil'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
     setState(() => _isLoading = false);
   }
 
   Future<void> _changePassword() async {
-    if (_newPassController.text.isEmpty || _currentPassController.text.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Semua kolom password harus diisi'), backgroundColor: Colors.orange));
+    if (_newPassController.text.isEmpty ||
+        _currentPassController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Semua kolom password harus diisi'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
     if (_newPassController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konfirmasi password baru tidak cocok!'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konfirmasi password baru tidak cocok!'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
     setState(() => _isLoading = true);
@@ -152,18 +175,31 @@ class _MeScreenState extends State<MeScreen> {
     final token = prefs.getString('token');
     if (token != null) {
       final result = await _userService.changePassword(
-        token, _currentPassController.text, _newPassController.text, _confirmPassController.text
+        token,
+        _currentPassController.text,
+        _newPassController.text,
+        _confirmPassController.text,
       );
       setState(() => _isLoading = false);
       if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
         await Future.delayed(const Duration(seconds: 2));
         _logout();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } else {
-       setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
@@ -177,7 +213,9 @@ class _MeScreenState extends State<MeScreen> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round),
+            icon: Icon(
+              isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round,
+            ),
             onPressed: widget.toggleTheme,
             tooltip: isDark ? 'Mode Terang' : 'Mode Gelap',
           ),
@@ -208,7 +246,6 @@ class _MeScreenState extends State<MeScreen> {
                       ),
                       const SizedBox(height: 16),
 
-
                       _buildReadOnlyField(
                         label: 'Email',
                         controller: _emailController,
@@ -225,21 +262,24 @@ class _MeScreenState extends State<MeScreen> {
                         label: 'Password Saat Ini',
                         controller: _currentPassController,
                         obscureText: _obscureCurrent,
-                        onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                        onToggle: () =>
+                            setState(() => _obscureCurrent = !_obscureCurrent),
                       ),
                       const SizedBox(height: 16),
                       _buildPasswordField(
                         label: 'Password Baru',
                         controller: _newPassController,
                         obscureText: _obscureNew,
-                        onToggle: () => setState(() => _obscureNew = !_obscureNew),
+                        onToggle: () =>
+                            setState(() => _obscureNew = !_obscureNew),
                       ),
                       const SizedBox(height: 16),
                       _buildPasswordField(
                         label: 'Konfirmasi Password Baru',
                         controller: _confirmPassController,
                         obscureText: _obscureConfirm,
-                        onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        onToggle: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
@@ -250,9 +290,17 @@ class _MeScreenState extends State<MeScreen> {
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Simpan Password Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Simpan Password Baru',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
 
@@ -267,7 +315,12 @@ class _MeScreenState extends State<MeScreen> {
                         title: const Text('Bantuan & Panduan'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HelpScreen(),
+                            ),
+                          );
                         },
                       ),
                       ListTile(
@@ -275,7 +328,12 @@ class _MeScreenState extends State<MeScreen> {
                         title: const Text('Tentang Aplikasi'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AboutScreen(),
+                            ),
+                          );
                         },
                       ),
                       const SizedBox(height: 40),
@@ -293,35 +351,58 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor));
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).primaryColor,
+      ),
+    );
   }
-
 
   Widget _buildReadOnlyField({
     required String label,
     required TextEditingController controller,
     required IconData icon,
-    VoidCallback? onTap
+    VoidCallback? onTap,
   }) {
     return TextField(
-      controller: controller, readOnly: true,
+      controller: controller,
+      readOnly: true,
       decoration: InputDecoration(
-        labelText: label, prefixIcon: Icon(icon),
+        labelText: label,
+        prefixIcon: Icon(icon),
 
         suffixIcon: onTap != null
-            ? IconButton(icon: const Icon(Icons.edit, color: Colors.blueGrey), onPressed: onTap)
+            ? IconButton(
+                icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                onPressed: onTap,
+              )
             : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Theme.of(context).cardColor,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Theme.of(context).cardColor,
       ),
     );
   }
 
-  Widget _buildPasswordField({required String label, required TextEditingController controller, required bool obscureText, required VoidCallback onToggle}) {
+  Widget _buildPasswordField({
+    required String label,
+    required TextEditingController controller,
+    required bool obscureText,
+    required VoidCallback onToggle,
+  }) {
     return TextField(
-      controller: controller, obscureText: obscureText,
+      controller: controller,
+      obscureText: obscureText,
       decoration: InputDecoration(
-        labelText: label, prefixIcon: const Icon(Icons.lock_outline),
-        suffixIcon: IconButton(icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility), onPressed: onToggle),
+        labelText: label,
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: IconButton(
+          icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility),
+          onPressed: onToggle,
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

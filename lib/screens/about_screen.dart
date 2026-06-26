@@ -7,15 +7,11 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tentang Aplikasi'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Tentang Aplikasi'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
@@ -26,10 +22,7 @@ class AboutScreen extends StatelessWidget {
               child: SizedBox(
                 width: 100,
                 height: 100,
-                child: Image.asset(
-                  'assets/logo_MV.png',
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset('assets/logo_MV.png', fit: BoxFit.contain),
               ),
             ),
             const SizedBox(height: 24),
@@ -60,7 +53,6 @@ class AboutScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-
             const Text(
               'MiotVision adalah solusi pemantauan keamanan cerdas yang terintegrasi. '
               'Pantau kamera CCTV Anda dari mana saja, kelola perangkat dalam grup, dan akses riwayat rekaman dengan mudah melalui smartphone Anda.',
@@ -70,7 +62,6 @@ class AboutScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
             const Divider(),
-
 
             _buildInfoTile(
               context,
@@ -93,12 +84,11 @@ class AboutScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-
             Text(
               '© 2026 MiotVision. Hak Cipta Dilindungi.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
             ),
           ],
         ),
@@ -106,7 +96,12 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(BuildContext context, {required IconData icon, required String title, required String subtitle}) {
+  Widget _buildInfoTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -116,7 +111,10 @@ class AboutScreen extends StatelessWidget {
         ),
         child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     );

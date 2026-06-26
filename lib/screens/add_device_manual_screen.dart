@@ -54,7 +54,7 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
       final result = await _cameraService.addCamera(
         token,
         deviceId,
-        description: description
+        description: description,
       );
 
       setState(() => _isLoading = false);
@@ -69,16 +69,18 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
       }
     } else {
       setState(() => _isLoading = false);
-      ToastUtils.show(context, 'Sesi habis, silakan login ulang.', isError: true);
+      ToastUtils.show(
+        context,
+        'Sesi habis, silakan login ulang.',
+        isError: true,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tambah Device Manual'),
-      ),
+      appBar: AppBar(title: const Text('Tambah Device Manual')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -88,7 +90,9 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
               decoration: InputDecoration(
                 labelText: 'Device ID',
                 hintText: 'Contoh: 56bbe22e-...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.clear),
                   onPressed: () => _deviceIdController.clear(),
@@ -102,7 +106,9 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
               decoration: InputDecoration(
                 labelText: 'Deskripsi Kamera',
                 hintText: 'Contoh: Kamera Garasi Depan',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.description),
               ),
               maxLines: 2,
@@ -115,7 +121,9 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
                     onPressed: _submit,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                     ),

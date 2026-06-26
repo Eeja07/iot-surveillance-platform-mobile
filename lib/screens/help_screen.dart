@@ -13,7 +13,10 @@ class HelpScreen extends StatelessWidget {
     );
 
     try {
-      if (!await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication)) {
+      if (!await launchUrl(
+        emailLaunchUri,
+        mode: LaunchMode.externalApplication,
+      )) {
         throw 'Could not launch email';
       }
     } catch (e) {
@@ -24,13 +27,10 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bantuan & Panduan'),
-      ),
+      appBar: AppBar(title: const Text('Bantuan & Panduan')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -68,12 +68,11 @@ class HelpScreen extends StatelessWidget {
 
           Text(
             'Pertanyaan Umum (FAQ)',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-
 
           _buildFaqItem(
             'Bagaimana cara menambahkan kamera baru?',
@@ -101,7 +100,6 @@ class HelpScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-
 
           const Divider(),
           const SizedBox(height: 16),
@@ -141,10 +139,7 @@ class HelpScreen extends StatelessWidget {
       child: ExpansionTile(
         title: Text(
           question,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         children: [
           Padding(

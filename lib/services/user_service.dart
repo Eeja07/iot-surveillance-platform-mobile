@@ -1,12 +1,9 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
 
 class UserService {
-
   static const String _baseUrl = 'https://cctv.miot-its.org/api';
-
 
   Future<User?> getUser(String token) async {
     try {
@@ -24,17 +21,15 @@ class UserService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-
-
         if (data.containsKey('user')) {
           return User.fromJson(data['user']);
         }
 
-
-        if (data.containsKey('data') && data['data'] is Map && data['data'].containsKey('user')) {
+        if (data.containsKey('data') &&
+            data['data'] is Map &&
+            data['data'].containsKey('user')) {
           return User.fromJson(data['data']['user']);
         }
-
 
         if (data.containsKey('id') && data.containsKey('email')) {
           return User.fromJson(data);
@@ -51,7 +46,6 @@ class UserService {
     }
   }
 
-
   Future<bool> updateUser(String token, String name, String email) async {
     try {
       final response = await http.patch(
@@ -61,10 +55,7 @@ class UserService {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'name': name,
-          'email': email,
-        }),
+        body: json.encode({'name': name, 'email': email}),
       );
 
       return response.statusCode == 200;
@@ -74,8 +65,12 @@ class UserService {
     }
   }
 
-
-  Future<Map<String, dynamic>> changePassword(String token, String currentPassword, String newPassword, String confirmPassword) async {
+  Future<Map<String, dynamic>> changePassword(
+    String token,
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl/password'),
@@ -96,10 +91,13 @@ class UserService {
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': responseBody['message'] ?? 'Password berhasil diubah. Silakan login kembali.'
+          'message':
+              responseBody['message'] ??
+              'Password berhasil diubah. Silakan login kembali.',
         };
       } else {
-        String errorMessage = responseBody['message'] ?? 'Gagal mengubah password.';
+        String errorMessage =
+            responseBody['message'] ?? 'Gagal mengubah password.';
         if (responseBody.containsKey('errors')) {
           errorMessage += " ${responseBody['errors'].toString()}";
         }

@@ -10,10 +10,7 @@ import '../models/camera_model.dart';
 class CameraDetailScreen extends StatefulWidget {
   final Camera camera;
 
-  const CameraDetailScreen({
-    super.key,
-    required this.camera,
-  });
+  const CameraDetailScreen({super.key, required this.camera});
 
   @override
   State<CameraDetailScreen> createState() => _CameraDetailScreenState();
@@ -29,7 +26,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   int? _selectedHour;
   int? _selectedMinute;
 
-
   List<String> _minuteFolders = [];
 
   int? _currentlyExpandedIndex;
@@ -41,7 +37,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   bool _hasThumbnailUpdated = false;
   Timer? _autoRefreshTimer;
 
-
   final Set<String> _datesWithRecords = {};
   final Map<int, int> _hoursWithRecords = {};
   final Map<int, int> _minutesWithRecords = {};
@@ -51,22 +46,18 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     super.initState();
     _currentCameraName = widget.camera.name;
 
-
     final now = DateTime.now();
     _selectedHour = now.hour;
     _selectedMinute = now.minute;
-
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchAvailableDates();
       _fetchAvailableHours();
 
-
       if (_selectedHour != null) {
         _fetchAvailableMinutes();
       }
     });
-
 
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _performAutoRefresh();
@@ -80,38 +71,39 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     super.dispose();
   }
 
-
   Future<void> _performAutoRefresh() async {
     if (!mounted) return;
 
-
     if (!DateUtils.isSameDay(_selectedDate, DateTime.now())) return;
-
 
     if (_selectedHour != null) {
       await _fetchAvailableMinutes(isBackground: true);
     }
 
-
     if (_currentlyExpandedIndex != null && _selectedHour != null) {
-
       if (_currentlyExpandedIndex! < _minuteFolders.length) {
         final minuteString = _minuteFolders[_currentlyExpandedIndex!];
         final hourString = _selectedHour.toString().padLeft(2, '0');
 
-
-        await _fetchImagesForMinute(hourString, minuteString, forceRefresh: true, isBackground: true);
+        await _fetchImagesForMinute(
+          hourString,
+          minuteString,
+          forceRefresh: true,
+          isBackground: true,
+        );
       }
     }
   }
-
 
   Future<void> _fetchAvailableDates() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token == null) return;
 
-    final result = await _cameraService.getHistoryStats(token, widget.camera.id.toString());
+    final result = await _cameraService.getHistoryStats(
+      token,
+      widget.camera.id.toString(),
+    );
 
     if (result['items'] != null) {
       final List items = result['items'];
@@ -128,7 +120,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-
   Future<void> _fetchAvailableHours() async {
     setState(() => _hoursWithRecords.clear());
 
@@ -140,7 +131,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     final result = await _cameraService.getHistoryStats(
       token,
       widget.camera.id.toString(),
-      date: dateStr
+      date: dateStr,
     );
 
     if (result['items'] != null) {
@@ -159,14 +150,11 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-
-
   Future<void> _fetchAvailableMinutes({bool isBackground = false}) async {
     if (_selectedHour == null) return;
 
-
     if (!isBackground) {
-       setState(() => _minutesWithRecords.clear());
+      setState(() => _minutesWithRecords.clear());
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -180,14 +168,13 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       token,
       widget.camera.id.toString(),
       date: dateStr,
-      hour: hourStr
+      hour: hourStr,
     );
 
     if (result['items'] != null) {
       final List items = result['items'];
       if (mounted) {
         setState(() {
-
           if (isBackground) _minutesWithRecords.clear();
 
           for (var item in items) {
@@ -199,10 +186,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           }
         });
 
-
-
         if (!isBackground) {
-           _updateMinuteFoldersAndList();
+          _updateMinuteFoldersAndList();
         }
       }
     } else {
@@ -210,22 +195,21 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-
   void _updateMinuteFoldersAndList() {
     if (_selectedHour == null) return;
 
     List<String> newFolders;
 
     if (_selectedMinute != null) {
-
       final minuteString = _selectedMinute!.toString().padLeft(2, '0');
       newFolders = [minuteString];
 
-
       _currentlyExpandedIndex = 0;
-      _fetchImagesForMinute(_selectedHour.toString().padLeft(2, '0'), minuteString);
+      _fetchImagesForMinute(
+        _selectedHour.toString().padLeft(2, '0'),
+        minuteString,
+      );
     } else {
-
       newFolders = List.generate(60, (m) => m.toString().padLeft(2, '0'));
       _currentlyExpandedIndex = null;
     }
@@ -235,7 +219,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       _itemKeys.clear();
     });
   }
-
 
   Future<void> _handleDateSelection() async {
     DateTime tempDate = _selectedDate;
@@ -258,13 +241,23 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-  Widget _buildCustomCalendarDialog(BuildContext context, DateTime initialDate) {
+  Widget _buildCustomCalendarDialog(
+    BuildContext context,
+    DateTime initialDate,
+  ) {
     DateTime displayDate = initialDate;
 
     return StatefulBuilder(
       builder: (context, setDialogState) {
-        final daysInMonth = DateUtils.getDaysInMonth(displayDate.year, displayDate.month);
-        final firstDayOfMonth = DateTime(displayDate.year, displayDate.month, 1);
+        final daysInMonth = DateUtils.getDaysInMonth(
+          displayDate.year,
+          displayDate.month,
+        );
+        final firstDayOfMonth = DateTime(
+          displayDate.year,
+          displayDate.month,
+          1,
+        );
         final int weekdayOffset = firstDayOfMonth.weekday - 1;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -273,21 +266,36 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
 
         return AlertDialog(
           contentPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: () => setDialogState(() => displayDate = DateTime(displayDate.year, displayDate.month - 1)),
+                onPressed: () => setDialogState(
+                  () => displayDate = DateTime(
+                    displayDate.year,
+                    displayDate.month - 1,
+                  ),
+                ),
               ),
               Text(
                 DateFormat('MMMM yyyy').format(displayDate),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: () => setDialogState(() => displayDate = DateTime(displayDate.year, displayDate.month + 1)),
+                onPressed: () => setDialogState(
+                  () => displayDate = DateTime(
+                    displayDate.year,
+                    displayDate.month + 1,
+                  ),
+                ),
               ),
             ],
           ),
@@ -299,26 +307,48 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg']
-                      .map((d) => SizedBox(
-                            width: 30,
-                            child: Center(child: Text(d, style: TextStyle(fontWeight: FontWeight.bold, color: subtitleColor, fontSize: 12)))
-                          )).toList(),
+                      .map(
+                        (d) => SizedBox(
+                          width: 30,
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: subtitleColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 10),
                 const Divider(),
                 Expanded(
                   child: GridView.builder(
                     itemCount: daysInMonth + weekdayOffset,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 7,
+                        ),
                     itemBuilder: (context, index) {
                       if (index < weekdayOffset) return const SizedBox();
 
                       final day = index - weekdayOffset + 1;
-                      final date = DateTime(displayDate.year, displayDate.month, day);
+                      final date = DateTime(
+                        displayDate.year,
+                        displayDate.month,
+                        day,
+                      );
                       final dateKey = DateFormat('yyyy-MM-dd').format(date);
 
                       final hasRecord = _datesWithRecords.contains(dateKey);
-                      final isSelected = DateUtils.isSameDay(date, _selectedDate);
+                      final isSelected = DateUtils.isSameDay(
+                        date,
+                        _selectedDate,
+                      );
                       final isToday = DateUtils.isSameDay(date, DateTime.now());
 
                       return InkWell(
@@ -328,7 +358,11 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                           margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isSelected ? Theme.of(context).primaryColor : (isToday ? Colors.blue.withOpacity(0.1) : null),
+                            color: isSelected
+                                ? Theme.of(context).primaryColor
+                                : (isToday
+                                      ? Colors.blue.withOpacity(0.1)
+                                      : null),
                           ),
                           child: Stack(
                             alignment: Alignment.center,
@@ -336,21 +370,28 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                               Text(
                                 '$day',
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : (isToday ? Colors.blue : textColor),
-                                  fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.normal
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isToday ? Colors.blue : textColor),
+                                  fontWeight: (isSelected || isToday)
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                               if (hasRecord)
                                 Positioned(
                                   bottom: 6,
                                   child: Container(
-                                    width: 5, height: 5,
+                                    width: 5,
+                                    height: 5,
                                     decoration: BoxDecoration(
-                                      color: isSelected ? Colors.white : Colors.green,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.green,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                )
+                                ),
                             ],
                           ),
                         ),
@@ -364,9 +405,12 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                   children: [
                     const Icon(Icons.circle, size: 8, color: Colors.green),
                     const SizedBox(width: 4),
-                    Text("= Ada Rekaman", style: TextStyle(fontSize: 12, color: subtitleColor)),
+                    Text(
+                      "= Ada Rekaman",
+                      style: TextStyle(fontSize: 12, color: subtitleColor),
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -380,9 +424,14 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Kamera'),
-        content: Text('Apakah Anda yakin ingin menghapus kamera "$_currentCameraName"?'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus kamera "$_currentCameraName"?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -398,12 +447,17 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token != null) {
-      final result = await _cameraService.deleteCamera(token, widget.camera.id.toString());
+      final result = await _cameraService.deleteCamera(
+        token,
+        widget.camera.id.toString(),
+      );
       if (mounted) {
         if (result['success']) {
           Navigator.pop(context, true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'])));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(result['message'])));
         }
       }
     }
@@ -414,8 +468,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => EditCameraScreen(
-
-
           camera: Camera(
             id: widget.camera.id,
             name: _currentCameraName,
@@ -424,43 +476,51 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
             description: widget.camera.description,
             deviceId: widget.camera.deviceId,
             groupId: widget.camera.groupId,
-            thumbnailUrl: widget.camera.thumbnailUrl
+            thumbnailUrl: widget.camera.thumbnailUrl,
           ),
         ),
       ),
     );
 
     if (result == true) {
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Kamera diperbarui.")));
-         Navigator.pop(context, true);
-       }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Kamera diperbarui.")));
+        Navigator.pop(context, true);
+      }
     }
   }
 
   void _applyFilter() {
     if (_selectedHour == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih jam terlebih dahulu.'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Silakan pilih jam terlebih dahulu.'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
     _updateMinuteFoldersAndList();
   }
 
-
-  Future<void> _fetchImagesForMinute(String hour, String minute, {bool forceRefresh = false, bool isBackground = false}) async {
+  Future<void> _fetchImagesForMinute(
+    String hour,
+    String minute, {
+    bool forceRefresh = false,
+    bool isBackground = false,
+  }) async {
     final cacheKey = '$hour:$minute';
 
-
-
-    if (!forceRefresh && (_loadedImagesCache.containsKey(cacheKey) || (_isLoadingMap[cacheKey] ?? false))) {
+    if (!forceRefresh &&
+        (_loadedImagesCache.containsKey(cacheKey) ||
+            (_isLoadingMap[cacheKey] ?? false))) {
       return;
     }
 
-
     if (!isBackground) {
-        setState(() => _isLoadingMap[cacheKey] = true);
+      setState(() => _isLoadingMap[cacheKey] = true);
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -478,14 +538,13 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       );
 
       if (images.isNotEmpty) {
-         final String latestImageUrl = images.first['url'];
-         await prefs.setString('thumbnail_${widget.camera.id}', latestImageUrl);
-         _hasThumbnailUpdated = true;
+        final String latestImageUrl = images.first['url'];
+        await prefs.setString('thumbnail_${widget.camera.id}', latestImageUrl);
+        _hasThumbnailUpdated = true;
       }
 
       if (mounted) {
         setState(() {
-
           _loadedImagesCache[cacheKey] = images;
           _isLoadingMap[cacheKey] = false;
         });
@@ -507,12 +566,32 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'edit') _editCamera();
-              else if (value == 'delete') _confirmDelete();
+              if (value == 'edit')
+                _editCamera();
+              else if (value == 'delete')
+                _confirmDelete();
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, color: Colors.blue), SizedBox(width: 8), Text('Edit')])),
-              const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red), SizedBox(width: 8), Text('Hapus')])),
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Hapus'),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -523,7 +602,12 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
 
           Expanded(
             child: _selectedHour == null
-                ? const Center(child: Text("Silakan pilih Jam terlebih dahulu untuk melihat rekaman.", style: TextStyle(color: Colors.grey)))
+                ? const Center(
+                    child: Text(
+                      "Silakan pilih Jam terlebih dahulu untuk melihat rekaman.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
                 : _buildResultsList(),
           ),
         ],
@@ -540,13 +624,18 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text("Filter Perekaman", style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                "Filter Perekaman",
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
               _buildFilterRowResponsive(),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _applyFilter,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 child: const Text('Tampilkan Rekaman'),
               ),
             ],
@@ -594,7 +683,11 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
         });
         _fetchAvailableMinutes();
       },
-      decoration: const InputDecoration(labelText: 'Jam', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
+      decoration: const InputDecoration(
+        labelText: 'Jam',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+      ),
     );
 
     final minuteDrop = DropdownButtonFormField<int?>(
@@ -618,13 +711,19 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
               ],
             ),
           );
-        })
+        }),
       ],
-      onChanged: _selectedHour == null ? null : (v) {
-        setState(() => _selectedMinute = v);
-        _updateMinuteFoldersAndList();
-      },
-      decoration: const InputDecoration(labelText: 'Menit', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
+      onChanged: _selectedHour == null
+          ? null
+          : (v) {
+              setState(() => _selectedMinute = v);
+              _updateMinuteFoldersAndList();
+            },
+      decoration: const InputDecoration(
+        labelText: 'Menit',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+      ),
     );
 
     return Column(
@@ -667,7 +766,9 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           leading: Icon(Icons.folder_outlined, color: iconColor),
           title: Text(
             'Pukul $hourString:$minuteString',
-            style: TextStyle(fontWeight: hasData ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(
+              fontWeight: hasData ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
           subtitle: Text(
             images != null
@@ -676,8 +777,10 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
             style: TextStyle(
               fontSize: 12,
               color: hasData
-                  ? (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.black54)
-                  : Colors.grey
+                  ? (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.black54)
+                  : Colors.grey,
             ),
           ),
           initiallyExpanded: isExpanded,
@@ -688,19 +791,26 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                 _fetchImagesForMinute(hourString, minuteString);
               });
             } else {
-               setState(() => _currentlyExpandedIndex = null);
+              setState(() => _currentlyExpandedIndex = null);
             }
           },
           children: [
             if (isLoading)
-              const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()))
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(child: CircularProgressIndicator()),
+              )
             else if (images == null || images.isEmpty)
-              const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('Tidak ada gambar yang dimuat.')))
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(child: Text('Tidak ada gambar yang dimuat.')),
+              )
             else
-              _buildImageGrid(images, '$hourString:$minuteString')
+              _buildImageGrid(images, '$hourString:$minuteString'),
           ],
         );
-    });
+      },
+    );
   }
 
   Widget _buildImageGrid(List<Map<String, dynamic>> images, String titleTime) {
@@ -728,8 +838,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                   initialIndex: index,
                   title: titleTime,
                   cameraName: widget.camera.name,
-                )
-              )
+                ),
+              ),
             );
           },
           child: Card(
@@ -737,10 +847,15 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
             elevation: 2,
             child: Hero(
               tag: imageUrl,
-              child: Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.broken_image)),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+              ),
             ),
           ),
         );
-    });
+      },
+    );
   }
 }

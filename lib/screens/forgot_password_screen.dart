@@ -18,7 +18,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Masukkan email yang valid'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Masukkan email yang valid'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -32,9 +35,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (mounted) {
       if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kode OTP terkirim! Cek email Anda.'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Kode OTP terkirim! Cek email Anda.'),
+            backgroundColor: Colors.green,
+          ),
         );
-
 
         Navigator.push(
           context,
@@ -47,7 +52,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -69,7 +77,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   color: Colors.blue.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_reset, size: 60, color: Colors.blue),
+                child: const Icon(
+                  Icons.lock_reset,
+                  size: 60,
+                  color: Colors.blue,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -90,7 +102,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email Terdaftar',
                   hintText: 'nama@email.com',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   prefixIcon: const Icon(Icons.email_outlined),
                 ),
                 keyboardType: TextInputType.emailAddress,
@@ -105,11 +119,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         onPressed: _sendOtp,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
                         ),
-                        child: const Text('Kirim Kode OTP', style: TextStyle(fontSize: 16)),
+                        child: const Text(
+                          'Kirim Kode OTP',
+                          style: TextStyle(fontSize: 16),
+                        ),
                       ),
                     ),
             ],
