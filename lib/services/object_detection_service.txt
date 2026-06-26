@@ -1,0 +1,204 @@
+import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
+import 'package:tflite_flutter/tflite_flutter.dart';
+
+class ObjectDetectionService {
+  Interpreter? _interpreter;
+  List<String> _labels = [];
+  bool _isReady = false;
+
+
+  static const String _modelPath = "assets/best-fp16.tflite";
+  static const String _labelPath = "assets/customclasses.txt";
+
+
+
+
+  static const int _inputSize = 640;
+  static const double _confThreshold = 0.35;
+  static const double _iouThreshold = 0.45;
+
+  ObjectDetectionService();
+
+  Future<void> loadModel() async {
+    try {
+
+      _interpreter = await Interpreter.fromAsset(_modelPath);
+
+
+      final labelData = await rootBundle.loadString(_labelPath);
+      _labels = labelData.split('\n').where((s) => s.trim().isNotEmpty).toList();
+
+      var inputShape = _interpreter?.getInputTensor(0).shape;
+      var outputShape = _interpreter?.getOutputTensor(0).shape;
+      print("INFO: YOLO Loaded. Input: $inputShape, Output: $outputShape");
+
+      _isReady = true;
+    } catch (e) {
+      print("FATAL: Gagal memuat model YOLO: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> detectPerson(String imagePath) async {
+    if (!_isReady) await loadModel();
+    if (_interpreter == null) return {};
+
+    try {
+      final file = File(imagePath);
+      if (!file.existsSync()) return {};
+
+
+      final imageBytes = await file.readAsBytes();
+      final img.Image? originalImage = img.decodeImage(imageBytes);
+      if (originalImage == null) return {};
+
+      double imgW = originalImage.width.toDouble();
+      double imgH = originalImage.height.toDouble();
+
+
+      final img.Image resizedImage = img.copyResize(
+        originalImage,
+        width: _inputSize,
+        height: _inputSize
+      );
+
+
+      var inputTensor = _imageToFloat32(resizedImage, _inputSize);
+
+
+
+      var outputShape = _interpreter!.getOutputTensor(0).shape;
+
+      var outputBuffer = List.filled(outputShape.reduce((a, b) => a * b), 0.0).reshape(outputShape);
+
+
+      _interpreter!.run([inputTensor], outputBuffer);
+
+
+      List<List<dynamic>> predictions = outputBuffer[0];
+      List<Map<String, dynamic>> results = _processPredictions(predictions, imgW, imgH);
+
+      return {
+        'width': imgW,
+        'height': imgH,
+        'objects': results,
+      };
+
+    } catch (e) {
+      print("ERROR INFERENCE: $e");
+      return {};
+    }
+  }
+
+  List<dynamic> _imageToFloat32(img.Image image, int size) {
+
+
+    return List.generate(1, (i) => List.generate(size, (y) => List.generate(size, (x) {
+      var pixel = image.getPixel(x, y);
+      return [
+        pixel.r / 255.0,
+        pixel.g / 255.0,
+        pixel.b / 255.0
+      ];
+    })));
+  }
+
+  List<Map<String, dynamic>> _processPredictions(List<List<dynamic>> predictions, double imgW, double imgH) {
+    List<Map<String, dynamic>> candidates = [];
+
+
+    for (var pred in predictions) {
+      double objConf = pred[4];
+      if (objConf < _confThreshold) continue;
+
+
+      double maxClassScore = 0.0;
+      int classIndex = -1;
+
+      for (int i = 5; i < pred.length; i++) {
+        if (pred[i] > maxClassScore) {
+          maxClassScore = pred[i];
+          classIndex = i - 5;
+        }
+      }
+
+      double finalScore = objConf * maxClassScore;
+      if (finalScore > _confThreshold) {
+
+        double cx = pred[0];
+        double cy = pred[1];
+        double w = pred[2];
+        double h = pred[3];
+
+
+        double xMin = (cx - (w / 2)) / _inputSize;
+        double yMin = (cy - (h / 2)) / _inputSize;
+        double wNorm = w / _inputSize;
+        double hNorm = h / _inputSize;
+
+        String label = (classIndex >= 0 && classIndex < _labels.length)
+            ? _labels[classIndex]
+            : "Unknown";
+
+        candidates.add({
+          'rect': {
+            'x': xMin.clamp(0.0, 1.0),
+            'y': yMin.clamp(0.0, 1.0),
+            'w': wNorm.clamp(0.0, 1.0),
+            'h': hNorm.clamp(0.0, 1.0)
+          },
+          'confidence': finalScore,
+          'label': label,
+        });
+      }
+    }
+
+    return _nms(candidates);
+  }
+
+
+  List<Map<String, dynamic>> _nms(List<Map<String, dynamic>> boxes) {
+    if (boxes.isEmpty) return [];
+
+
+    boxes.sort((a, b) => (b['confidence'] as double).compareTo(a['confidence'] as double));
+
+    List<Map<String, dynamic>> selected = [];
+    List<bool> active = List.filled(boxes.length, true);
+
+    for (int i = 0; i < boxes.length; i++) {
+      if (!active[i]) continue;
+      selected.add(boxes[i]);
+
+      for (int j = i + 1; j < boxes.length; j++) {
+        if (!active[j]) continue;
+
+        double iou = _calculateIoU(boxes[i]['rect'], boxes[j]['rect']);
+        if (iou > _iouThreshold) {
+          active[j] = false;
+        }
+      }
+    }
+    return selected;
+  }
+
+  double _calculateIoU(Map<String, dynamic> a, Map<String, dynamic> b) {
+    double areaA = a['w'] * a['h'];
+    double areaB = b['w'] * b['h'];
+
+    double xA = max(a['x'], b['x']);
+    double yA = max(a['y'], b['y']);
+    double xB = min(a['x'] + a['w'], b['x'] + b['w']);
+    double yB = min(a['y'] + a['h'], b['y'] + b['h']);
+
+    double intersection = max(0, xB - xA) * max(0, yB - yA);
+    return intersection / (areaA + areaB - intersection);
+  }
+
+  void close() {
+    _interpreter?.close();
+  }
+}
