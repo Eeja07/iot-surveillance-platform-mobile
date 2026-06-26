@@ -45,7 +45,10 @@ class CameraThumbnailHeader extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.transparent,
+                  ],
                 ),
               ),
               child: Row(
@@ -86,8 +89,8 @@ class CameraThumbnailHeader extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isOnline
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.red.withOpacity(0.2),
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : Colors.red.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isOnline ? Colors.green : Colors.red,

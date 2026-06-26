@@ -256,7 +256,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dashboardAsync = ref.watch(dashboardProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -293,36 +292,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       body: Stack(
         children: [
-          dashboardAsync.when(
-            data: (dashboardState) {
-              final groups = dashboardState.filteredGroups;
+          Consumer(
+            builder: (context, ref, child) {
+              final dashboardAsync = ref.watch(dashboardProvider);
+              return dashboardAsync.when(
+                data: (dashboardState) {
+                  final groups = dashboardState.filteredGroups;
 
-              if (groups.isEmpty) {
-                return DashboardEmpty(
-                  isSearching: _isSearching,
-                  onRefresh: _refreshData,
-                );
-              }
+                  if (groups.isEmpty) {
+                    return DashboardEmpty(
+                      isSearching: _isSearching,
+                      onRefresh: _refreshData,
+                    );
+                  }
 
-              return _buildCameraListContent(groups);
-            },
-            loading: () {
-              final currentGroups =
-                  dashboardAsync.valueOrNull?.filteredGroups ?? [];
-              if (currentGroups.isNotEmpty) {
-                return _buildCameraListContent(currentGroups);
-              }
-              return const DashboardLoading();
-            },
-            error: (err, stack) {
-              final currentGroups =
-                  dashboardAsync.valueOrNull?.filteredGroups ?? [];
-              if (currentGroups.isNotEmpty) {
-                return _buildCameraListContent(currentGroups);
-              }
-              return DashboardError(
-                error: err.toString(),
-                onRetry: _refreshData,
+                  return _buildCameraListContent(groups);
+                },
+                loading: () {
+                  final currentGroups =
+                      dashboardAsync.valueOrNull?.filteredGroups ?? [];
+                  if (currentGroups.isNotEmpty) {
+                    return _buildCameraListContent(currentGroups);
+                  }
+                  return const DashboardLoading();
+                },
+                error: (err, stack) {
+                  final currentGroups =
+                      dashboardAsync.valueOrNull?.filteredGroups ?? [];
+                  if (currentGroups.isNotEmpty) {
+                    return _buildCameraListContent(currentGroups);
+                  }
+                  return DashboardError(
+                    error: err.toString(),
+                    onRetry: _refreshData,
+                  );
+                },
               );
             },
           ),
