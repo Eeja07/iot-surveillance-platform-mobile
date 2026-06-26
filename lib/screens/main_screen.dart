@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'me_screen.dart';
-import 'add_device_manual_screen.dart';
-import 'add_group_screen.dart';
-import 'qr_scanner_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../core/router/app_routes.dart';
 
 class MainScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
+  final Widget child;
 
   const MainScreen({
     super.key,
     required this.toggleTheme,
     required this.isDarkMode,
+    required this.child,
   });
 
   @override
@@ -20,14 +19,20 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
-  final ValueNotifier<bool> _refreshHomeNotifier = ValueNotifier(false);
+  int get _selectedIndex {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith(AppRoutes.me)) {
+      return 1;
+    }
+    return 0;
+  }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 0) {
+      context.go(AppRoutes.dashboard);
+    } else {
+      context.go(AppRoutes.me);
+    }
   }
 
   void _showAddDeviceMenu(BuildContext context) {
@@ -58,43 +63,25 @@ class _MainScreenState extends State<MainScreen> {
               ListTile(
                 leading: const Icon(Icons.qr_code_scanner),
                 title: const Text('Scan QR Code'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const QrScannerScreen(),
-                    ),
-                  );
-                  if (result == true) _triggerHomeRefresh();
+                onTap: () {
+                  context.pop();
+                  context.go(AppRoutes.qrScanner);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.add_box_outlined),
                 title: const Text('Add Device Manually'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddDeviceManualScreen(),
-                    ),
-                  );
-                  if (result == true) _triggerHomeRefresh();
+                onTap: () {
+                  context.pop();
+                  context.go(AppRoutes.addDeviceManual);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.folder_copy_outlined),
                 title: const Text('Add Group'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddGroupScreen(),
-                    ),
-                  );
-                  if (result == true) _triggerHomeRefresh();
+                onTap: () {
+                  context.pop();
+                  context.go(AppRoutes.addGroup);
                 },
               ),
               const SizedBox(height: 20),
@@ -105,27 +92,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  void _triggerHomeRefresh() {
-    _refreshHomeNotifier.value = !_refreshHomeNotifier.value;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isKeyboardVisible =
         MediaQuery.of(context).viewInsets.bottom != 0;
 
-    final List<Widget> pages = [
-      HomeScreen(
-        toggleTheme: widget.toggleTheme,
-        isDarkMode: widget.isDarkMode,
-        refreshNotifier: _refreshHomeNotifier,
-      ),
-      MeScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
-    ];
-
     return Scaffold(
-      body: pages[_selectedIndex],
-
+      body: widget.child,
       floatingActionButton: isKeyboardVisible
           ? null
           : FloatingActionButton(
@@ -134,7 +107,6 @@ class _MainScreenState extends State<MainScreen> {
               child: const Icon(Icons.add),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
       bottomNavigationBar: isKeyboardVisible
           ? null
           : BottomAppBar(

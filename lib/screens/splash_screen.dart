@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../core/di/injection.dart';
 import '../core/network/api_result.dart';
+import '../core/router/app_routes.dart';
 import '../features/auth/domain/model/user_model.dart';
-import '../features/auth/presentation/login/login_screen.dart';
 import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
@@ -29,7 +30,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkLoginStatus() async {
     final sessionService = AppLocator.instance.sessionService;
     final authRepository = AppLocator.instance.authRepository;
-    final authController = AppLocator.instance.authController;
 
     await Future.delayed(const Duration(milliseconds: 2500));
 
@@ -50,28 +50,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (isValid) {
-      await authController.handleLoginSuccess(
-        context,
-        toggleTheme: widget.toggleTheme,
-        isDarkMode: widget.isDarkMode,
-      );
+      context.go(AppRoutes.dashboard);
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(
-            toggleTheme: widget.toggleTheme,
-            isDarkMode: widget.isDarkMode,
-            onSuccess: () {
-              authController.handleLoginSuccess(
-                context,
-                toggleTheme: widget.toggleTheme,
-                isDarkMode: widget.isDarkMode,
-              );
-            },
-          ),
-        ),
-      );
+      context.go(AppRoutes.login);
     }
   }
 

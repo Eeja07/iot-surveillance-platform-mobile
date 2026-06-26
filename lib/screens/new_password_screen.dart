@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
+import '../core/router/app_routes.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String email;
@@ -64,17 +65,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(ctx);
-
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => LoginScreen(
-                            toggleTheme: () {},
-                            isDarkMode: false,
-                          ),
-                        ),
-                        (Route<dynamic> route) => false,
-                      );
+                      context.pop();
+                      context.go(AppRoutes.login);
                     },
                     child: const Text('Login Sekarang'),
                   ),

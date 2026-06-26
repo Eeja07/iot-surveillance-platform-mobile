@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/camera_service.dart';
 import '../models/camera_model.dart';
@@ -147,7 +148,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
         if (errorCount > 0) message += ' ($errorCount operasi gagal)';
 
         ToastUtils.show(context, message, isError: errorCount > 0);
-        Navigator.pop(context);
+        context.pop();
         widget.onSave(true);
       }
     }

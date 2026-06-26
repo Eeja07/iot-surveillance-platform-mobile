@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
 import 'verification_screen.dart';
 
@@ -41,14 +42,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         );
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationScreen(
-              email: email,
-              purpose: VerificationPurpose.passwordReset,
-            ),
-          ),
+        context.go(
+          '/verification',
+          extra: {'email': email, 'purpose': VerificationPurpose.passwordReset},
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

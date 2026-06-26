@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'add_device_manual_screen.dart';
+import '../core/router/app_routes.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -46,13 +47,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddDeviceManualScreen(deviceIdFromQR: code),
-            ),
-          );
+          context.go(AppRoutes.addDeviceManual, extra: {'deviceId': code});
         }
       });
     }

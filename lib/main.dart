@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
+import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +34,11 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _loadThemePreference();
     _startPeriodicTokenCheck();
+    AppRouter.init(
+      toggleTheme: _toggleTheme,
+      isDarkMode: () => _themeMode == ThemeMode.dark,
+      navigatorKey: navigatorKey,
+    );
   }
 
   @override
@@ -88,22 +92,11 @@ class _MyAppState extends State<MyApp> {
       bool isValid = await _authService.checkTokenValidity(token);
 
       if (!isValid) {
-        print("Token Expired/Invalid. Melakukan Logout Paksa...");
-
         await prefs.clear();
-
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(
-              toggleTheme: _toggleTheme,
-              isDarkMode: _themeMode == ThemeMode.dark,
-            ),
-          ),
-          (route) => false,
-        );
+        AppRouter.router.go('/login');
       }
     } catch (e) {
-      print("Error checking token in background: $e");
+      // ignore background token check errors
     } finally {
       _isCheckingToken = false;
     }
@@ -111,17 +104,13 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
+    return MaterialApp.router(
+      routerConfig: AppRouter.router,
       title: 'MiotVision',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: SplashScreen(
-        toggleTheme: _toggleTheme,
-        isDarkMode: _themeMode == ThemeMode.dark,
-      ),
     );
   }
 }

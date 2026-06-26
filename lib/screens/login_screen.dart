@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
-import 'main_screen.dart';
-import 'admin_home_screen.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
+import '../core/router/app_routes.dart';
 import 'verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -56,20 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('role', role);
         await prefs.setString('saved_email', email);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => role == 'admin'
-                ? AdminHomeScreen(
-                    toggleTheme: widget.toggleTheme,
-                    isDarkMode: widget.isDarkMode,
-                  )
-                : MainScreen(
-                    toggleTheme: widget.toggleTheme,
-                    isDarkMode: widget.isDarkMode,
-                  ),
-          ),
-        );
+        context.go(AppRoutes.dashboard);
       } else {
         String errorMessage = result['message'].toString();
 
@@ -89,20 +74,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () => context.pop(),
                   child: const Text("Batal"),
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VerificationScreen(
-                          email: email,
-                          purpose: VerificationPurpose.activation,
-                        ),
-                      ),
+                    context.pop();
+                    context.go(
+                      '/verification',
+                      extra: {
+                        'email': email,
+                        'purpose': VerificationPurpose.activation,
+                      },
                     );
                   },
                   child: const Text("Ya, Verifikasi"),
@@ -177,14 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: () => context.go('/forgot-password'),
                       child: const Text('Lupa Password?'),
                     ),
                   ),
@@ -207,14 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Text('Belum punya akun?'),
                       TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const RegisterScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: () => context.go('/register'),
                         child: const Text('Daftar'),
                       ),
                     ],

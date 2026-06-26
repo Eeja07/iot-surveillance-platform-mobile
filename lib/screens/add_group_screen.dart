@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../services/camera_service.dart';
 import '../models/camera_model.dart';
 import '../utils/toast_utils.dart';
+import '../core/di/injection.dart';
 
 class AddGroupScreen extends StatefulWidget {
   const AddGroupScreen({super.key});
@@ -29,8 +30,8 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
 
   Future<void> _fetchUngroupedCameras() async {
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       try {
@@ -74,8 +75,8 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       final result = await _cameraService.createGroupApi(token, groupName);
@@ -108,7 +109,7 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
           if (errorCount > 0) message += '. Gagal menambah $errorCount kamera.';
 
           ToastUtils.show(context, message, isError: errorCount > 0);
-          Navigator.pop(context, true);
+          context.pop();
         }
       } else {
         if (mounted) {

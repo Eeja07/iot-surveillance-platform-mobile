@@ -3,7 +3,6 @@ import '../domain/model/user_model.dart';
 import '../domain/repository/auth_repository.dart';
 import '../../../../core/storage/session_service.dart';
 import '../../../../core/network/api_result.dart';
-import '../../../../core/navigation/navigation_service.dart';
 
 class AuthController extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -86,18 +85,5 @@ class AuthController extends ChangeNotifier {
   Future<void> clearError() async {
     _errorMessage = null;
     notifyListeners();
-  }
-
-  Future<void> handleLoginSuccess(
-    BuildContext context, {
-    required VoidCallback toggleTheme,
-    required bool isDarkMode,
-  }) async {
-    final navigationService = NavigationService(_sessionService);
-    await navigationService.navigateToLandingPage(
-      context,
-      toggleTheme: toggleTheme,
-      isDarkMode: isDarkMode,
-    );
   }
 }

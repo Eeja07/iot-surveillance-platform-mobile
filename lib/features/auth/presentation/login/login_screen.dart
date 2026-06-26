@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/router/app_routes.dart';
 import '../auth_controller.dart';
 import 'login_form.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
-  final VoidCallback? onSuccess;
 
   const LoginScreen({
     super.key,
     required this.toggleTheme,
     required this.isDarkMode,
-    this.onSuccess,
   });
 
   @override
@@ -39,8 +39,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onStateChanged() {
     if (_authController.currentUser != null) {
-      if (widget.onSuccess != null) {
-        widget.onSuccess!();
+      if (mounted) {
+        context.go(AppRoutes.dashboard);
       }
     }
   }

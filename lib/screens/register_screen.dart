@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
 import 'verification_screen.dart';
 
@@ -51,14 +52,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationScreen(
-              email: email,
-              purpose: VerificationPurpose.activation,
-            ),
-          ),
+        context.go(
+          '/verification',
+          extra: {'email': email, 'purpose': VerificationPurpose.activation},
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -196,9 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 20),
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => context.pop(),
                   child: const Text('Sudah punya akun? Login'),
                 ),
               ],

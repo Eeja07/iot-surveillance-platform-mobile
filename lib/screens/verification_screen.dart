@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
-import 'new_password_screen.dart';
-import 'login_screen.dart';
-import 'main_screen.dart';
-import 'admin_home_screen.dart';
+import '../core/router/app_routes.dart';
+import '../core/di/injection.dart';
+import '../features/auth/domain/model/user_model.dart';
 
 enum VerificationPurpose { activation, passwordReset }
 
@@ -65,11 +64,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
           String? token = result['token'];
 
           if (token != null) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('token', token);
-            await prefs.setString('role', role);
-
-            await prefs.setString('saved_email', widget.email);
+            final sessionService = AppLocator.instance.sessionService;
+            await sessionService.saveSession(
+              token: token,
+              user: UserModel(id: 0, name: '', email: widget.email, role: role),
+            );
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -79,15 +78,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             ),
           );
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => role == 'admin'
-                  ? AdminHomeScreen(toggleTheme: () {}, isDarkMode: false)
-                  : MainScreen(toggleTheme: () {}, isDarkMode: false),
-            ),
-            (route) => false,
-          );
+          context.go(AppRoutes.dashboard);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -96,12 +87,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
             ),
           );
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  NewPasswordScreen(email: widget.email, otp: inputOtp),
-            ),
+          context.go(
+            '/new-password',
+            extra: {'email': widget.email, 'otp': inputOtp},
           );
         }
       } else {

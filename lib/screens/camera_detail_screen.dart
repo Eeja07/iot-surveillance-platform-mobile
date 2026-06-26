@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'image_viewer_screen.dart';
-import 'edit_camera_screen.dart';
 import '../services/camera_service.dart';
 import '../models/camera_model.dart';
+import '../core/di/injection.dart';
+import '../core/router/app_routes.dart';
 
 class CameraDetailScreen extends StatefulWidget {
   final Camera camera;
@@ -96,8 +97,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   }
 
   Future<void> _fetchAvailableDates() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token == null) return;
 
     final result = await _cameraService.getHistoryStats(
@@ -123,8 +124,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   Future<void> _fetchAvailableHours() async {
     setState(() => _hoursWithRecords.clear());
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token == null) return;
 
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -157,8 +158,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       setState(() => _minutesWithRecords.clear());
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token == null) return;
 
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -352,7 +353,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                       final isToday = DateUtils.isSameDay(date, DateTime.now());
 
                       return InkWell(
-                        onTap: () => Navigator.pop(context, date),
+                        onTap: () => context.pop(date),
                         customBorder: const CircleBorder(),
                         child: Container(
                           margin: const EdgeInsets.all(2),
@@ -429,12 +430,12 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => context.pop(false),
             child: const Text('Batal'),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => context.pop(true),
             child: const Text('Hapus'),
           ),
         ],
@@ -444,8 +445,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   }
 
   Future<void> _executeDelete() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token != null) {
       final result = await _cameraService.deleteCamera(
         token,
@@ -453,7 +454,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       );
       if (mounted) {
         if (result['success']) {
-          Navigator.pop(context, true);
+          context.pop();
         } else {
           ScaffoldMessenger.of(
             context,
@@ -464,32 +465,21 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
   }
 
   Future<void> _editCamera() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditCameraScreen(
-          camera: Camera(
-            id: widget.camera.id,
-            name: _currentCameraName,
-            groupName: widget.camera.groupName,
-            isOnline: widget.camera.isOnline,
-            description: widget.camera.description,
-            deviceId: widget.camera.deviceId,
-            groupId: widget.camera.groupId,
-            thumbnailUrl: widget.camera.thumbnailUrl,
-          ),
+    context.go(
+      AppRoutes.editCamera,
+      extra: {
+        'camera': Camera(
+          id: widget.camera.id,
+          name: _currentCameraName,
+          groupName: widget.camera.groupName,
+          isOnline: widget.camera.isOnline,
+          description: widget.camera.description,
+          deviceId: widget.camera.deviceId,
+          groupId: widget.camera.groupId,
+          thumbnailUrl: widget.camera.thumbnailUrl,
         ),
-      ),
+      },
     );
-
-    if (result == true) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Kamera diperbarui.")));
-        Navigator.pop(context, true);
-      }
-    }
   }
 
   void _applyFilter() {
@@ -523,8 +513,8 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
       setState(() => _isLoadingMap[cacheKey] = true);
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -539,7 +529,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
 
       if (images.isNotEmpty) {
         final String latestImageUrl = images.first['url'];
-        await prefs.setString('thumbnail_${widget.camera.id}', latestImageUrl);
         _hasThumbnailUpdated = true;
       }
 
@@ -561,7 +550,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
         title: Text(_currentCameraName),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context, _hasThumbnailUpdated),
+          onPressed: () => context.pop(),
         ),
         actions: [
           PopupMenuButton<String>(
@@ -830,16 +819,14 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           onTap: () {
             final allUrls = images.map((e) => e['url'] as String).toList();
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ImageViewerScreen(
-                  imageUrls: allUrls,
-                  initialIndex: index,
-                  title: titleTime,
-                  cameraName: widget.camera.name,
-                ),
-              ),
+            context.push(
+              '/image-viewer',
+              extra: {
+                'imageUrls': allUrls,
+                'initialIndex': index,
+                'title': titleTime,
+                'cameraName': widget.camera.name,
+              },
             );
           },
           child: Card(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../services/camera_service.dart';
 import '../utils/toast_utils.dart';
+import '../core/di/injection.dart';
 
 class AddDeviceManualScreen extends StatefulWidget {
   final String? deviceIdFromQR;
@@ -47,8 +48,8 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
 
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       final result = await _cameraService.addCamera(
@@ -62,7 +63,7 @@ class _AddDeviceManualScreenState extends State<AddDeviceManualScreen> {
       if (mounted) {
         if (result['success']) {
           ToastUtils.show(context, result['message'], isError: false);
-          Navigator.pop(context, true);
+          context.pop();
         } else {
           ToastUtils.show(context, result['message'], isError: true);
         }

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../services/user_service.dart';
 import '../config/app_colors.dart';
 import '../core/di/injection.dart';
-import '../features/auth/presentation/login/login_screen.dart';
-import 'about_screen.dart';
-import 'help_screen.dart';
+import '../core/router/app_routes.dart';
+import '../features/auth/domain/model/user_model.dart';
 
 class MeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -44,8 +43,8 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token != null) {
       final user = await _userService.getUser(token);
       if (user != null) {
@@ -55,19 +54,26 @@ class _MeScreenState extends State<MeScreen> {
             _emailController.text = user.email;
             _isDataLoaded = true;
           });
-          await prefs.setString('user_name', user.name);
-          await prefs.setString('user_email', user.email);
+          final currentUser = await sessionService.getCurrentUser();
+          await sessionService.saveSession(
+            token: token,
+            user: UserModel(
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: currentUser?.role ?? 'user',
+            ),
+          );
         }
         return;
       }
     }
-    final name = prefs.getString('user_name');
-    final email = prefs.getString('user_email');
-    if (name != null) {
+    final user = await sessionService.getCurrentUser();
+    if (user != null) {
       if (mounted) {
         setState(() {
-          _nameController.text = name;
-          _emailController.text = email ?? '';
+          _nameController.text = user.name;
+          _emailController.text = user.email;
           _isDataLoaded = true;
         });
       }
@@ -79,24 +85,9 @@ class _MeScreenState extends State<MeScreen> {
 
     await authController.logout();
 
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => LoginScreen(
-          toggleTheme: widget.toggleTheme,
-          isDarkMode: widget.isDarkMode,
-          onSuccess: () {
-            authController.handleLoginSuccess(
-              context,
-              toggleTheme: widget.toggleTheme,
-              isDarkMode: widget.isDarkMode,
-            );
-          },
-        ),
-      ),
-      (Route<dynamic> route) => false,
-    );
+    if (mounted) {
+      context.go(AppRoutes.login);
+    }
   }
 
   void _showEditDialog(String title, TextEditingController controller) {
@@ -114,12 +105,12 @@ class _MeScreenState extends State<MeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              context.pop();
               await _updateProfile(
                 title == 'Nama' ? editController.text : _nameController.text,
                 title == 'Email' ? editController.text : _emailController.text,
@@ -134,8 +125,8 @@ class _MeScreenState extends State<MeScreen> {
 
   Future<void> _updateProfile(String name, String email) async {
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token != null) {
       final success = await _userService.updateUser(token, name, email);
       if (success) {
@@ -143,8 +134,18 @@ class _MeScreenState extends State<MeScreen> {
           _nameController.text = name;
           _emailController.text = email;
         });
-        await prefs.setString('user_name', name);
-        await prefs.setString('user_email', email);
+        final currentUser = await sessionService.getCurrentUser();
+        if (currentUser != null) {
+          await sessionService.saveSession(
+            token: token,
+            user: UserModel(
+              id: currentUser.id,
+              name: name,
+              email: email,
+              role: currentUser.role,
+            ),
+          );
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil berhasil diperbarui')),
         );
@@ -181,8 +182,8 @@ class _MeScreenState extends State<MeScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token != null) {
       final result = await _userService.changePassword(
         token,
@@ -325,12 +326,7 @@ class _MeScreenState extends State<MeScreen> {
                         title: const Text('Bantuan & Panduan'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HelpScreen(),
-                            ),
-                          );
+                          context.go(AppRoutes.help);
                         },
                       ),
                       ListTile(
@@ -338,12 +334,7 @@ class _MeScreenState extends State<MeScreen> {
                         title: const Text('Tentang Aplikasi'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AboutScreen(),
-                            ),
-                          );
+                          context.go(AppRoutes.about);
                         },
                       ),
                       const SizedBox(height: 40),

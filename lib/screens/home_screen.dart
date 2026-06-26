@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 
 import '../services/camera_service.dart';
 import '../config/app_colors.dart';
 import '../models/camera_model.dart';
 import '../utils/toast_utils.dart';
-
-import 'camera_detail_screen.dart';
-import 'edit_camera_screen.dart';
-import 'edit_group_screen.dart';
-import 'login_screen.dart';
+import '../core/di/injection.dart';
+import '../core/router/app_routes.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -30,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final CameraService _cameraService = CameraService();
+  static final Map<int, String> _thumbnailCache = {};
 
   List<CameraGroup> _allCameraGroups = [];
   List<CameraGroup> _filteredCameraGroups = [];
@@ -37,6 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   Timer? _statusRefreshTimer;
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _fetchCamerasFromApi(isSilent: true);
+  }
 
   Timer? _thumbnailRefreshTimer;
 
@@ -118,8 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshThumbnails() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
     if (token == null) return;
 
     for (var group in _allCameraGroups) {
@@ -133,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
           if (newUrl != null && mounted) {
-            await prefs.setString('thumbnail_${cam.id}', newUrl);
+            _thumbnailCache[cam.id] = newUrl;
 
             setState(() {
               group.cameras[i] = Camera(
@@ -161,8 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       try {
@@ -172,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
           for (int i = 0; i < group.cameras.length; i++) {
             final cam = group.cameras[i];
             if (cam.thumbnailUrl == null || cam.thumbnailUrl!.isEmpty) {
-              final localThumb = prefs.getString('thumbnail_${cam.id}');
+              final localThumb = _thumbnailCache[cam.id];
               if (localThumb != null && localThumb.isNotEmpty) {
                 group.cameras[i] = Camera(
                   id: cam.id,
@@ -264,16 +268,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _forceLogout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) =>
-            LoginScreen(toggleTheme: () {}, isDarkMode: false),
-      ),
-      (Route<dynamic> route) => false,
-    );
+    final sessionService = AppLocator.instance.sessionService;
+    await sessionService.clearSession();
+    if (mounted) {
+      context.go(AppRoutes.login);
+    }
   }
 
   Future<void> _refreshData() async {
@@ -288,14 +287,14 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       final result = await _cameraService.deleteGroupApi(token, group.name);
 
       if (mounted) {
-        Navigator.pop(context);
+        context.pop();
         if (result['success']) {
           ToastUtils.show(context, result['message'], isError: false);
           _fetchCamerasFromApi();
@@ -308,8 +307,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _deleteCameraProcess(Camera camera) async {
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final sessionService = AppLocator.instance.sessionService;
+    final token = await sessionService.getAccessToken();
 
     if (token != null) {
       final result = await _cameraService.deleteCamera(
@@ -339,17 +338,15 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: const Icon(Icons.edit_outlined),
               title: const Text('Edit Grup'),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditGroupScreen(
-                      group: group,
-                      onSave: (shouldRefresh) {
-                        if (shouldRefresh) _fetchCamerasFromApi();
-                      },
-                    ),
-                  ),
+                context.pop();
+                context.go(
+                  AppRoutes.editGroup,
+                  extra: {
+                    'group': group,
+                    'onSave': (bool shouldRefresh) {
+                      if (shouldRefresh) _fetchCamerasFromApi();
+                    },
+                  },
                 );
               },
             ),
@@ -360,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _showDeleteConfirmationDialog(group);
               },
             ),
@@ -383,12 +380,12 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               child: const Text('Batal'),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => context.pop(),
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               onPressed: () {
-                Navigator.of(context).pop();
+                context.pop();
                 _deleteGroupProcess(group);
               },
               child: const Text('Hapus'),
@@ -408,17 +405,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: const Icon(Icons.edit, color: Colors.blue),
               title: const Text('Edit Kamera'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditCameraScreen(camera: camera),
-                  ),
-                );
-                if (result == true) {
-                  _fetchCamerasFromApi();
-                }
+              onTap: () {
+                context.pop();
+                context.go(AppRoutes.editCamera, extra: {'camera': camera});
               },
             ),
             ListTile(
@@ -428,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () {
-                Navigator.pop(ctx);
+                context.pop();
                 _confirmDeleteCamera(camera);
               },
             ),
@@ -446,13 +435,13 @@ class _HomeScreenState extends State<HomeScreen> {
         content: Text('Hapus kamera "${camera.name}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => context.pop(),
             child: const Text('Batal'),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () {
-              Navigator.pop(ctx);
+              context.pop();
               _deleteCameraProcess(camera);
             },
             child: const Text('Hapus'),
@@ -711,17 +700,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CameraDetailScreen(camera: camera),
-              ),
-            );
-
-            if (result == true) {
-              _fetchCamerasFromApi();
-            }
+          onTap: () {
+            context.go(AppRoutes.cameraDetail, extra: {'camera': camera});
           },
           onLongPress: () => _showCameraOptions(context, camera),
           child: Stack(
