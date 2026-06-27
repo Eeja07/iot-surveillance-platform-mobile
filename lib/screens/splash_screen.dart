@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/di/injection.dart';
 import '../core/network/api_result.dart';
+import '../core/network/network_exception.dart';
 import '../core/router/app_routes.dart';
 import '../features/auth/domain/model/user_model.dart';
 import 'dart:async';
+import 'dart:io';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -36,20 +38,39 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     final hasSession = await sessionService.isLoggedIn();
-    bool isValid = false;
 
-    if (hasSession) {
+    if (!hasSession) {
+      // No local token at all — must login.
+      if (mounted) context.go(AppRoutes.login);
+      return;
+    }
+
+    // Token exists. Try to validate with server.
+    bool shouldGoToDashboard = true;
+
+    try {
       final result = await authRepository.me();
-      if (result is ApiSuccess<UserModel>) {
-        isValid = true;
-      } else {
-        await sessionService.clearSession();
+
+      if (result is ApiFailure<UserModel>) {
+        final exception = result.exception;
+        if (exception is UnauthorizedException) {
+          // Server explicitly rejected token (401) — token is invalid.
+          await sessionService.clearSession();
+          shouldGoToDashboard = false;
+        }
+        // 403, 500, NetworkException, TimeoutException — server unreachable
+        // or temporarily unavailable. Keep session and proceed to dashboard;
+        // the user will get a proper error if they try to load data.
       }
+    } on SocketException {
+      // No network — keep session, go to dashboard.
+    } catch (_) {
+      // Unexpected error — keep session, go to dashboard.
     }
 
     if (!mounted) return;
 
-    if (isValid) {
+    if (shouldGoToDashboard) {
       context.go(AppRoutes.dashboard);
     } else {
       context.go(AppRoutes.login);

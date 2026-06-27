@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_result.dart';
+import 'core/network/network_exception.dart';
+import 'features/auth/domain/model/user_model.dart';
 
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
@@ -137,12 +140,24 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
 
       final result = await authRepository.me();
-      if (result is ApiFailure) {
-        await sessionService.clearSession();
-        AppRouter.router.go('/login');
+
+      // Rule: Only destroy session when backend explicitly returns 401.
+      // All other failures (network, timeout, 500, SocketException, server
+      // unreachable) must be silently ignored — retry on next timer tick.
+      if (result is ApiFailure<UserModel>) {
+        final exception = result.exception;
+        if (exception is UnauthorizedException) {
+          // 401 — server confirmed token is invalid → logout
+          await sessionService.expireSession();
+          AppRouter.router.go('/login');
+        }
+        // 403, 500, NetworkException, TimeoutException, SocketException, etc.
+        // → keep session, retry later.
       }
-    } catch (e) {
-      // ignore background token check errors
+    } on SocketException {
+      // No network connectivity — keep session, retry later.
+    } catch (_) {
+      // Any other unexpected error — keep session, retry later.
     } finally {
       _isCheckingToken = false;
     }
