@@ -101,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Smart IoT Surveillance",
+              "See More. Know Faster.",
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 60),

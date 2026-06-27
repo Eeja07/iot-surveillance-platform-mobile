@@ -60,10 +60,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (!isLandscape) ...[
-                    const Icon(
-                      Icons.security_outlined,
-                      size: 80,
-                      color: AppColors.success,
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: Image.asset(
+                        'assets/logomivion.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     AppSpacing.vXl,
                   ],
@@ -76,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   AppSpacing.vSm,
                   Text(
-                    'Sistem Pemantauan Kamera CCTV Terintegrasi',
+                    'See More. Know Faster.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).brightness == Brightness.dark
