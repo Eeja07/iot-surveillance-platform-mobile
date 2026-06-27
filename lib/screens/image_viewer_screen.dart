@@ -124,13 +124,13 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
       );
 
       if (path != null) {
-        await Gal.putImage(path, album: 'MiotVision Cam');
+        await Gal.putImage(path, album: 'Mivion Cam');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Tersimpan di Album "MiotVision Cam"\nNama: $finalFileName',
+                'Tersimpan di Album "Mivion Cam"\nNama: $finalFileName',
               ),
               backgroundColor: Colors.green,
             ),

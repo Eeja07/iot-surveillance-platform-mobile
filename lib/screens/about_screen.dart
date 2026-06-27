@@ -28,7 +28,7 @@ class AboutScreen extends StatelessWidget {
               child: SizedBox(
                 width: 100,
                 height: 100,
-                child: Image.asset('assets/logo_MV.png', fit: BoxFit.contain),
+                child: Image.asset('assets/logomivion.png', fit: BoxFit.contain),
               ),
             ),
             const SizedBox(height: 24),

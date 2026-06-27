@@ -9,7 +9,7 @@ class HelpScreen extends StatelessWidget {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
       path: 'b300iotlab@gmail.com',
-      query: 'subject=Keluhan Aplikasi MiotVision',
+      query: 'subject=Keluhan Aplikasi Mivion',
     );
 
     try {

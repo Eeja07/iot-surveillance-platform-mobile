@@ -72,12 +72,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   assets:
-    - assets/efficientdet_lite0.tflite
-    - assets/ssd_mobilenet.tflite
-    - assets/best-fp16.tflite
-    - assets/customclasses.txt
     # Pastikan logo juga terdaftar di assets jika ingin digunakan di UI (misal Splash Screen)
-    - assets/logo_MV.png
+    - assets/logomivion.png
 
   uses-material-design: true
 
@@ -116,7 +112,7 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/logo_MV.png" # Pastikan path gambar benar
+  image_path: "assets/logo_launcher.png" # Pastikan path gambar benar
   min_sdk_android: 21 # Opsional
   adaptive_icon_background: "#ffffff" # Warna background icon
-  adaptive_icon_foreground: "assets/logo_MV.png" # Untuk Android versi baru
+  adaptive_icon_foreground: "assets/logo_launcher.png" # Untuk Android versi baru

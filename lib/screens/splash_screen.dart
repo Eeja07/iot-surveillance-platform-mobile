@@ -87,11 +87,11 @@ class _SplashScreenState extends State<SplashScreen> {
             SizedBox(
               width: 220,
               height: 220,
-              child: Image.asset('assets/logo_MV.png', fit: BoxFit.contain),
+              child: Image.asset('assets/logomivion.png', fit: BoxFit.contain),
             ),
             const SizedBox(height: 24),
             Text(
-              "MiotVision",
+              "Mivion",
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

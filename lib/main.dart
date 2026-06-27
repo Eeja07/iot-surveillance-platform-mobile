@@ -194,7 +194,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       },
       child: MaterialApp.router(
         routerConfig: AppRouter.router,
-        title: 'MiotVision',
+        title: 'Mivion',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
