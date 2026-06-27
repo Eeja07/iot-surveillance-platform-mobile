@@ -414,11 +414,9 @@ class _MeScreenState extends ConsumerState<MeScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     _emailController.text,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
-                                      color: isDark
-                                          ? AppColors.darkTextSecondary
-                                          : AppColors.textSecondary,
+                                      color: AppColors.textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -541,13 +539,15 @@ class _MeScreenState extends ConsumerState<MeScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey,
-        letterSpacing: 0.5,
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+          letterSpacing: 0.5,
+        ),
       ),
-      child: Text(title.toUpperCase()),
     );
   }
 }

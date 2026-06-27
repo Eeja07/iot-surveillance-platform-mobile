@@ -130,22 +130,18 @@ class CameraGroupCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$onlineCount/${group.cameras.length} online',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.more_vert,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.textSecondary,
+              color: AppColors.textSecondary,
             ),
             onPressed: onMenuPressed,
           ),

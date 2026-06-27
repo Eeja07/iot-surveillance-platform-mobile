@@ -31,7 +31,7 @@ class CameraTile extends StatelessWidget {
     final bool isOnline = camera.isOnline;
     final Color statusColor = isOnline ? AppColors.success : AppColors.danger;
     final String statusLabel = isOnline ? 'Online' : 'Offline';
-    final lastSeenText = _relativeLastSeen(camera.lastSeen);
+    final lastSeenText = _relativeLastSeen(null);
 
     return SizedBox(
       width: cardWidth,
