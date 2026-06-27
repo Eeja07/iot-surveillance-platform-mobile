@@ -13,7 +13,19 @@ class Camera {
   static const String _imageBaseUrl = 'https://cctv.miot-its.org';
 
   factory Camera.fromJson(Map<String, dynamic> json) {
-    String? thumb = json['thumbnail_url'];
+    String? thumb =
+        json['thumbnail_url'] ??
+        json['latest_image_url'];
+
+    if (thumb == null) {
+       final path = json['latest_image_path'];
+       if (path != null &&
+           path.toString().isNotEmpty) {
+          thumb =
+          '$_imageBaseUrl/storage/$path';
+       }
+    }
+
     if (thumb != null && thumb.isNotEmpty && !thumb.startsWith('http')) {
       thumb = '$_imageBaseUrl$thumb';
     }
@@ -21,7 +33,13 @@ class Camera {
     return Camera(
       id: json['id'],
       name: json['name'] ?? 'Kamera Tanpa Nama',
-      isOnline: json['is_active'] == true,
+      isOnline: (json['mqtt_status']
+             ?.toString()
+             .toLowerCase())
+         ==
+         'online'
+         ||
+         json['online'] == true,
       groupName:
           (json['group_name'] != null &&
               json['group_name'].toString().isNotEmpty)
