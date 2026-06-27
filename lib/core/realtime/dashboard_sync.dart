@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/dashboard/providers/dashboard_provider.dart';
 import '../../features/detection/providers/detection_provider.dart';
 import '../../features/notification/providers/notification_provider.dart';
 import '../../features/camera/providers/camera_config_provider.dart';
 import '../../features/ota/providers/ota_provider.dart';
-import '../observability/app_lifecycle_provider.dart';
 import '../observability/observability_service.dart';
-import '../notifications/notification_provider.dart';
 import 'reverb_service.dart';
 
 class DashboardSync {
@@ -27,40 +24,16 @@ class DashboardSync {
 
     switch (event.eventName) {
       case 'person.detected':
-        // Always refresh data providers — works in foreground and background.
+        // Invalidate data providers so UI refreshes in real-time.
+        // Android notification is handled exclusively by NotificationBridge.
+        debugPrint('[SYNC] person.detected — invalidating providers');
+        ObservabilityService.instance.info(
+          '[SYNC] person.detected — invalidating providers',
+        );
         _ref.invalidate(detectionProvider);
         _ref.invalidate(notificationProvider);
         _ref.invalidate(overviewProvider);
         _ref.invalidate(cameraProvider);
-
-        // Fire a native Android notification ONLY when the app is not in the
-        // foreground (minimised, screen locked, or force-stopped).
-        // When the app is open the refreshed providers already update the UI.
-        try {
-          final Map<String, dynamic> payload = event.data is String
-              ? json.decode(event.data as String) as Map<String, dynamic>
-              : Map<String, dynamic>.from(event.data as Map);
-
-          final lifecycle = _ref.read(appLifecycleProvider);
-          final isInForeground = lifecycle == AppLifecycleState.resumed;
-
-          if (!isInForeground) {
-            ObservabilityService.instance.info(
-              '[SYNC] App in background — sending native notification',
-            );
-            _showNativeNotification(payload);
-          } else {
-            ObservabilityService.instance.info(
-              '[SYNC] App in foreground — skipping native notification',
-            );
-          }
-        } catch (e, stack) {
-          ObservabilityService.instance.reportError(
-            e,
-            stack,
-            hint: 'Failed parsing person.detected event data',
-          );
-        }
         break;
 
       case 'image.received':
@@ -86,34 +59,9 @@ class DashboardSync {
     }
   }
 
-  /// Fires a native system push notification.
-  ///
-  /// Background-safe: does NOT touch any widget tree or Overlay.
-  /// Only called when [appLifecycleProvider] is NOT [AppLifecycleState.resumed].
-  void _showNativeNotification(Map<String, dynamic> data) {
-    try {
-      final id = int.tryParse(data['id']?.toString() ?? '') ?? data.hashCode;
-      final cameraName = data['camera_name']?.toString() ?? 'Kamera';
-      final confidence = data['confidence']?.toString() ?? '';
-
-      const title = 'Human Detected';
-      final body =
-          'Person detected on $cameraName${confidence.isNotEmpty ? ' ($confidence)' : ''}';
-
-      _ref.read(localNotificationServiceProvider).showNotification(
-        id: id,
-        title: title,
-        body: body,
-        payload: data['id']?.toString(),
-      );
-    } catch (e, stack) {
-      ObservabilityService.instance.reportError(
-        e,
-        stack,
-        hint: 'Native notification failed',
-      );
-    }
-  }
+  // NOTE: Android notification delivery is handled exclusively by
+  // NotificationBridge via the notificationProvider stream.
+  // DashboardSync is UI-sync only — it must never call showNotification().
 
   void _queueInvalidation(ProviderOrFamily provider) {
     _pendingInvalidations.add(provider);
