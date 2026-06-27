@@ -12,6 +12,8 @@ import '../features/camera/widgets/camera_timeline_selector.dart';
 import '../features/camera/widgets/camera_thumbnail_header.dart';
 import '../features/camera/widgets/camera_delete_dialog.dart';
 import '../features/camera/widgets/camera_calendar_dialog.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/dashboard/providers/dashboard_provider.dart';
 
 class CameraDetailScreen extends StatefulWidget {
   final Camera camera;
@@ -186,10 +188,10 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDelete(String cameraName) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => CameraDeleteDialog(cameraName: _currentCameraName),
+      builder: (ctx) => CameraDeleteDialog(cameraName: cameraName),
     );
     if (confirm == true) _executeDelete();
   }
@@ -213,39 +215,39 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     }
   }
 
-  void _editCamera() {
+  void _editCamera(Camera camera) {
     context.go(
       AppRoutes.editCamera,
       extra: {
         'camera': Camera(
-          id: widget.camera.id,
-          name: _currentCameraName,
-          groupName: widget.camera.groupName,
-          isOnline: widget.camera.isOnline,
-          description: widget.camera.description,
-          deviceId: widget.camera.deviceId,
-          groupId: widget.camera.groupId,
-          thumbnailUrl: widget.camera.thumbnailUrl,
-          websocketChannelId: widget.camera.websocketChannelId,
+          id: camera.id,
+          name: camera.name,
+          groupName: camera.groupName,
+          isOnline: camera.isOnline,
+          description: camera.description,
+          deviceId: camera.deviceId,
+          groupId: camera.groupId,
+          thumbnailUrl: camera.thumbnailUrl,
+          websocketChannelId: camera.websocketChannelId,
         ),
       },
     );
   }
 
-  void _goToConfig() {
+  void _goToConfig(Camera camera) {
     context.go(
       AppRoutes.config,
       extra: {
         'camera': Camera(
-          id: widget.camera.id,
-          name: _currentCameraName,
-          groupName: widget.camera.groupName,
-          isOnline: widget.camera.isOnline,
-          description: widget.camera.description,
-          deviceId: widget.camera.deviceId,
-          groupId: widget.camera.groupId,
-          thumbnailUrl: widget.camera.thumbnailUrl,
-          websocketChannelId: widget.camera.websocketChannelId,
+          id: camera.id,
+          name: camera.name,
+          groupName: camera.groupName,
+          isOnline: camera.isOnline,
+          description: camera.description,
+          deviceId: camera.deviceId,
+          groupId: camera.groupId,
+          thumbnailUrl: camera.thumbnailUrl,
+          websocketChannelId: camera.websocketChannelId,
         ),
       },
     );
@@ -298,140 +300,161 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_currentCameraName),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (val) {
-              if (val == 'edit') {
-                _editCamera();
-              } else if (val == 'delete') {
-                _confirmDelete();
-              } else if (val == 'ota') {
-                context.go(AppRoutes.ota);
-              } else if (val == 'detections') {
-                context.go(AppRoutes.detections);
-              } else if (val == 'config') {
-                _goToConfig();
+    return Consumer(
+      builder: (context, ref, child) {
+        final dashboardState = ref.watch(dashboardProvider).valueOrNull;
+        Camera camera = widget.camera;
+        if (dashboardState != null) {
+          for (final group in dashboardState.groups) {
+            for (final cam in group.cameras) {
+              if (cam.id == widget.camera.id) {
+                camera = cam;
+                break;
               }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'detections',
-                child: Row(
-                  children: [
-                    Icon(Icons.visibility, color: Colors.teal),
-                    SizedBox(width: 8),
-                    Text('Deteksi Objek'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'ota',
-                child: Row(
-                  children: [
-                    Icon(Icons.system_update_alt, color: Colors.orange),
-                    SizedBox(width: 8),
-                    Text('Pembaruan OTA'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'config',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, color: Colors.blueGrey),
-                    SizedBox(width: 8),
-                    Text('Konfigurasi'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('Edit'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Hapus'),
-                  ],
-                ),
+            }
+          }
+        }
+
+        debugPrint("[DETAIL] ${camera.id} ${camera.thumbnailUrl}");
+
+        final displayTitle = camera.name;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(displayTitle),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+            actions: [
+              PopupMenuButton<String>(
+                onSelected: (val) {
+                  if (val == 'edit') {
+                    _editCamera(camera);
+                  } else if (val == 'delete') {
+                    _confirmDelete(camera.name);
+                  } else if (val == 'ota') {
+                    context.go(AppRoutes.ota);
+                  } else if (val == 'detections') {
+                    context.go(AppRoutes.detections);
+                  } else if (val == 'config') {
+                    _goToConfig(camera);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'detections',
+                    child: Row(
+                      children: [
+                        Icon(Icons.visibility, color: Colors.teal),
+                        SizedBox(width: 8),
+                        Text('Deteksi Objek'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'ota',
+                    child: Row(
+                      children: [
+                        Icon(Icons.system_update_alt, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('Pembaruan OTA'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'config',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, color: Colors.blueGrey),
+                        SizedBox(width: 8),
+                        Text('Konfigurasi'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Hapus'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          CameraThumbnailHeader(camera: widget.camera),
-          CameraTimelineSelector(
-            selectedDate: _selectedDate,
-            selectedHour: _selectedHour,
-            selectedMinute: _selectedMinute,
-            hoursWithRecords: _hoursWithRecords,
-            minutesWithRecords: _minutesWithRecords,
-            onDateTap: _handleDateSelection,
-            onHourChanged: (v) {
-              setState(() {
-                _selectedHour = v;
-                _selectedMinute = null;
-              });
-              _fetchAvailableMinutes();
-            },
-            onMinuteChanged: (v) {
-              setState(() => _selectedMinute = v);
-              _updateMinuteFoldersAndList();
-            },
-            onApply: _applyFilter,
+          body: Column(
+            children: [
+              CameraThumbnailHeader(camera: camera),
+              CameraTimelineSelector(
+                selectedDate: _selectedDate,
+                selectedHour: _selectedHour,
+                selectedMinute: _selectedMinute,
+                hoursWithRecords: _hoursWithRecords,
+                minutesWithRecords: _minutesWithRecords,
+                onDateTap: _handleDateSelection,
+                onHourChanged: (v) {
+                  setState(() {
+                    _selectedHour = v;
+                    _selectedMinute = null;
+                  });
+                  _fetchAvailableMinutes();
+                },
+                onMinuteChanged: (v) {
+                  setState(() => _selectedMinute = v);
+                  _updateMinuteFoldersAndList();
+                },
+                onApply: _applyFilter,
+              ),
+              Expanded(
+                child: _selectedHour == null
+                    ? const Center(
+                        child: Text(
+                          "Silakan pilih Jam terlebih dahulu untuk melihat rekaman.",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : CameraHistorySection(
+                        controller: _listController,
+                        minuteFolders: _minuteFolders,
+                        selectedHour: _selectedHour!,
+                        minutesWithRecords: _minutesWithRecords,
+                        currentlyExpandedIndex: _currentlyExpandedIndex,
+                        loadedImagesCache: _loadedImagesCache,
+                        isLoadingMap: _isLoadingMap,
+                        cameraName: camera.name,
+                        onExpansionChanged: (index, expanded) {
+                          if (expanded) {
+                            setState(() {
+                              _currentlyExpandedIndex = index;
+                              _fetchImagesForMinute(
+                                _selectedHour!.toString().padLeft(2, '0'),
+                                _minuteFolders[index],
+                              );
+                            });
+                          } else {
+                            setState(() => _currentlyExpandedIndex = null);
+                          }
+                        },
+                      ),
+              ),
+            ],
           ),
-          Expanded(
-            child: _selectedHour == null
-                ? const Center(
-                    child: Text(
-                      "Silakan pilih Jam terlebih dahulu untuk melihat rekaman.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : CameraHistorySection(
-                    controller: _listController,
-                    minuteFolders: _minuteFolders,
-                    selectedHour: _selectedHour!,
-                    minutesWithRecords: _minutesWithRecords,
-                    currentlyExpandedIndex: _currentlyExpandedIndex,
-                    loadedImagesCache: _loadedImagesCache,
-                    isLoadingMap: _isLoadingMap,
-                    cameraName: widget.camera.name,
-                    onExpansionChanged: (index, expanded) {
-                      if (expanded) {
-                        setState(() {
-                          _currentlyExpandedIndex = index;
-                          _fetchImagesForMinute(
-                            _selectedHour!.toString().padLeft(2, '0'),
-                            _minuteFolders[index],
-                          );
-                        });
-                      } else {
-                        setState(() => _currentlyExpandedIndex = null);
-                      }
-                    },
-                  ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

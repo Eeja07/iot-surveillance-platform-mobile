@@ -22,7 +22,8 @@ class CameraThumbnailHeader extends StatelessWidget {
           if (hasThumbnail)
             Image.network(
               camera.thumbnailUrl!,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
               errorBuilder: (_, __, ___) => const Center(
                 child: Icon(
                   Icons.videocam_off,
