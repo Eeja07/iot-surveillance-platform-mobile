@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/repository_providers.dart';
-import 'package:MiotVision/features/notification/providers/notification_provider.dart';
-import 'package:MiotVision/features/detection/providers/detection_provider.dart';
-import 'package:MiotVision/repositories/detection_repository.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/repository_providers.dart';
+import 'package:Mivion/features/notification/providers/notification_provider.dart';
+import 'package:Mivion/features/detection/providers/detection_provider.dart';
+import 'package:Mivion/repositories/detection_repository.dart';
 import 'session_provider_test.dart';
 import 'notification_provider_test.dart';
 
 import 'package:intl/intl.dart';
-import 'package:MiotVision/core/network/api_result.dart';
+import 'package:Mivion/core/network/api_result.dart';
 
 class FakeDetectionRepository implements DetectionRepository {
   List<CctvNotification> notifications = [];

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/repository_providers.dart';
-import 'package:MiotVision/features/camera/providers/camera_provider.dart';
-import 'package:MiotVision/models/camera_model.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/repository_providers.dart';
+import 'package:Mivion/features/camera/providers/camera_provider.dart';
+import 'package:Mivion/models/camera_model.dart';
 import 'session_provider_test.dart'; // import FakeSessionService
 
 class FakeCameraRepository implements CameraRepository {

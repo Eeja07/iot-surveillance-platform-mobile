@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/session_state_provider.dart';
-import 'package:MiotVision/core/storage/session_service.dart';
-import 'package:MiotVision/core/storage/session_event.dart';
-import 'package:MiotVision/features/auth/domain/model/user_model.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/session_state_provider.dart';
+import 'package:Mivion/core/storage/session_service.dart';
+import 'package:Mivion/core/storage/session_event.dart';
+import 'package:Mivion/features/auth/domain/model/user_model.dart';
 
 class FakeSessionService implements SessionService {
   final _eventController = StreamController<SessionEvent>.broadcast();

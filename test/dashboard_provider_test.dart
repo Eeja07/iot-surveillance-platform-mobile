@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/repository_providers.dart';
-import 'package:MiotVision/features/dashboard/providers/dashboard_provider.dart';
-import 'package:MiotVision/models/camera_model.dart';
-import 'package:MiotVision/models/overview_model.dart';
-import 'package:MiotVision/repositories/overview_repository.dart';
-import 'package:MiotVision/core/network/api_result.dart';
-import 'package:MiotVision/core/network/network_exception.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/repository_providers.dart';
+import 'package:Mivion/features/dashboard/providers/dashboard_provider.dart';
+import 'package:Mivion/models/camera_model.dart';
+import 'package:Mivion/models/overview_model.dart';
+import 'package:Mivion/repositories/overview_repository.dart';
+import 'package:Mivion/core/network/api_result.dart';
+import 'package:Mivion/core/network/network_exception.dart';
 import 'session_provider_test.dart'; // import FakeSessionService
 
 class FakeDashboardRepository implements DashboardRepository {

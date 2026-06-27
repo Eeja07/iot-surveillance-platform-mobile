@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'package:MiotVision/features/ota/providers/ota_provider.dart';
-import 'package:MiotVision/core/observability/observability_service.dart';
-import 'package:MiotVision/core/observability/offline_indicator.dart';
-import 'package:MiotVision/core/network/dio_client.dart';
-import 'package:MiotVision/core/di/repository_providers.dart';
-import 'package:MiotVision/repositories/ota_repository.dart';
-import 'package:MiotVision/core/network/api_result.dart';
-import 'package:MiotVision/core/network/network_exception.dart';
-import 'package:MiotVision/features/dashboard/providers/dashboard_provider.dart';
-import 'package:MiotVision/models/camera_model.dart';
+import 'package:Mivion/features/ota/providers/ota_provider.dart';
+import 'package:Mivion/core/observability/observability_service.dart';
+import 'package:Mivion/core/observability/offline_indicator.dart';
+import 'package:Mivion/core/network/dio_client.dart';
+import 'package:Mivion/core/di/repository_providers.dart';
+import 'package:Mivion/repositories/ota_repository.dart';
+import 'package:Mivion/core/network/api_result.dart';
+import 'package:Mivion/core/network/network_exception.dart';
+import 'package:Mivion/features/dashboard/providers/dashboard_provider.dart';
+import 'package:Mivion/models/camera_model.dart';
 
 class FakeOtaRepository implements OtaRepository {
   FirmwareInfo? latestFirmware;

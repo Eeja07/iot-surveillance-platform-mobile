@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:MiotVision/core/observability/error_boundary.dart';
+import 'package:Mivion/core/observability/error_boundary.dart';
 
 void main() {
   group('ErrorBoundary Tests', () {

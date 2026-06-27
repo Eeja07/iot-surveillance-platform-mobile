@@ -6,17 +6,23 @@ class AboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      appBar: AppBar(title: const Text('Tentang Aplikasi'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Tentang Mivion'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            // Logo Container
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: SizedBox(
@@ -27,69 +33,100 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
+            // Application Title
             Text(
-              'MiotVision',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              'Mivion',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
+
+            // Slogan
+            Text(
+              'See More. Know Faster.',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Version Chip
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey[200],
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                'Versi 1.0.0 (Beta)',
+                'Versi 2.0.0',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[800],
+                  color: isDark ? Colors.grey[300] : Colors.grey[800],
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-
             const SizedBox(height: 32),
 
+            // Description
             const Text(
-              'MiotVision adalah solusi pemantauan keamanan cerdas yang terintegrasi. '
-              'Pantau kamera CCTV Anda dari mana saja, kelola perangkat dalam grup, dan akses riwayat rekaman dengan mudah melalui smartphone Anda.',
+              'Mivion adalah platform pemantauan cerdas berbasis IoT yang dirancang untuk memberikan visibilitas keamanan secara real-time. Kelola kamera, pantau deteksi objek, terima notifikasi instan, dan lakukan konfigurasi perangkat dari mana saja melalui satu aplikasi terpadu.',
               textAlign: TextAlign.center,
-              style: TextStyle(height: 1.6, fontSize: 15),
+              style: TextStyle(
+                height: 1.6,
+                fontSize: 15,
+              ),
             ),
-
             const SizedBox(height: 32),
-            const Divider(),
 
-            _buildInfoTile(
-              context,
-              icon: Icons.code,
-              title: 'Dikembangkan Oleh',
-              subtitle: 'Tim Magang Lab MIOT 2025',
+            // Information Card
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
+                  children: [
+                    _buildInfoTile(
+                      context,
+                      icon: Icons.person_outline,
+                      title: 'Dikembangkan Oleh',
+                      subtitle: 'Mahija Ibad Pradipta',
+                    ),
+                    const Divider(indent: 56),
+                    _buildInfoTile(
+                      context,
+                      icon: Icons.school_outlined,
+                      title: 'Afiliasi',
+                      subtitle: 'Laboratorium Multimedia & Internet of Things\nInstitut Teknologi Sepuluh Nopember',
+                    ),
+                    const Divider(indent: 56),
+                    _buildInfoTile(
+                      context,
+                      icon: Icons.update_outlined,
+                      title: 'Terakhir Diperbarui',
+                      subtitle: 'Juni 2026',
+                    ),
+                  ],
+                ),
+              ),
             ),
-            _buildInfoTile(
-              context,
-              icon: Icons.business,
-              title: 'Afiliasi',
-              subtitle: 'Lab. Multimedia dan Internet Of Things',
-            ),
-            _buildInfoTile(
-              context,
-              icon: Icons.update,
-              title: 'Terakhir Diperbarui',
-              subtitle: 'Januari 2026',
-            ),
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 20),
-
+            // Footer
             Text(
-              '© 2026 MiotVision. Hak Cipta Dilindungi.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              '© 2026 Mivion. All Rights Reserved.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -106,8 +143,8 @@ class AboutScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       ),
@@ -115,8 +152,11 @@ class AboutScreen extends StatelessWidget {
         title,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 13, height: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
 }

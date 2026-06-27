@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/auth_provider.dart';
-import 'package:MiotVision/features/auth/domain/model/user_model.dart';
-import 'package:MiotVision/features/auth/presentation/auth_controller.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/auth_provider.dart';
+import 'package:Mivion/features/auth/domain/model/user_model.dart';
+import 'package:Mivion/features/auth/presentation/auth_controller.dart';
 
 class FakeAuthController extends ChangeNotifier implements AuthController {
   UserModel? _currentUser;

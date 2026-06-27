@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:MiotVision/core/di/providers.dart';
-import 'package:MiotVision/core/di/repository_providers.dart';
-import 'package:MiotVision/features/notification/providers/notification_provider.dart';
+import 'package:Mivion/core/di/providers.dart';
+import 'package:Mivion/core/di/repository_providers.dart';
+import 'package:Mivion/features/notification/providers/notification_provider.dart';
 import 'session_provider_test.dart'; // import FakeSessionService
 
 class FakeNotificationRepository implements NotificationRepository {
