@@ -18,6 +18,9 @@ class DashboardSync {
   DashboardSync(this._ref);
 
   void handleEvent(PusherEvent event) {
+    debugPrint(
+      "[SYNC] ${event.eventName}"
+    );
     ObservabilityService.instance.info(
       '[SYNC] Handling event: ${event.eventName}',
     );

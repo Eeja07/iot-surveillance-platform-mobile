@@ -20,6 +20,7 @@
 //     error:   (e, _) => ErrorWidget(e.toString()),
 //   );
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/camera_model.dart';
 import '../../../models/overview_model.dart';
@@ -278,6 +279,12 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
     for (final group in processedGroups) {
       for (final cam in group.cameras) {
         final channel = cam.websocketChannelId;
+        debugPrint(
+          "[DASHBOARD] subscribing "
+          "${cam.name}"
+          " -> "
+          "${cam.websocketChannelId}"
+        );
         if (channel != null && channel.isNotEmpty) {
           reverb.subscribeToCameraChannel(channel);
         }

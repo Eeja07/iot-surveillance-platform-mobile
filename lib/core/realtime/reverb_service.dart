@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../di/injection.dart';
 import '../di/auth_provider.dart';
@@ -165,6 +166,12 @@ class ReverbService {
       final channel = decoded['channel'] as String?;
       final rawData = decoded['data'];
 
+      debugPrint(
+        "[REVERB EVENT] "
+        "event=$eventName "
+        "channel=$channel"
+      );
+
       if (eventName == null) return;
 
       if (eventName == 'pusher:connection_established') {
@@ -179,6 +186,10 @@ class ReverbService {
           _subscribe(cameraChannel);
         }
       } else if (eventName == 'pusher_internal:subscription_succeeded') {
+        debugPrint(
+          "[REVERB] subscription succeeded "
+          "$channel"
+        );
         if (channel == 'detections') {
           print("[REVERB] subscribed detections");
           ObservabilityService.instance.info("[REVERB] subscribed detections");
@@ -309,9 +320,15 @@ class ReverbService {
   }
 
   Future<void> subscribeToCameraChannel(String channelId) async {
+    debugPrint(
+      "[REVERB] subscribeToCameraChannel $channelId"
+    );
     _cameraChannels.add(channelId);
     if (_socket != null && _socket!.readyState == WebSocket.open) {
       try {
+        debugPrint(
+          "[REVERB] sending subscribe $channelId"
+        );
         _subscribe(channelId);
       } catch (_) {}
     }
