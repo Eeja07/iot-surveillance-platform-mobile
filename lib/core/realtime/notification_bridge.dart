@@ -1,20 +1,29 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/notification/providers/notification_provider.dart';
 import '../notifications/notification_provider.dart';
 import '../observability/app_lifecycle_provider.dart';
 import '../observability/observability_service.dart';
 import 'connection_monitor.dart';
 import 'dashboard_sync.dart';
+import 'detection_event.dart';
 import 'realtime_dispatcher.dart';
 import 'realtime_lifecycle.dart';
 import 'reverb_provider.dart';
 
+/// Single source of Android notification delivery.
+///
+/// Architecture (Phase 21.8):
+///   Reverb → RealtimeDispatcher → [handleRealtimeDetection] → showNotification()
+///                               ↘ DashboardSync.invalidate()  → UI refresh
+///
+/// Notifications are now **event-driven** — no dependency on provider refresh
+/// timing, no previous/next diffing, no delayed delivery.
 class NotificationBridge {
   final Ref _ref;
 
   NotificationBridge(this._ref);
 
+  /// Initialise all realtime sub-services.
   void init() {
     _ref.read(reverbServiceProvider);
     _ref.read(realtimeLifecycleProvider);
@@ -23,63 +32,41 @@ class NotificationBridge {
     _ref.read(dashboardSyncProvider);
   }
 
-  void handleNotificationChanged(
-    AsyncValue<NotificationState>? previous,
-    AsyncValue<NotificationState> next,
-  ) {
-    final nextValue = next.valueOrNull;
+  /// Called by [RealtimeDispatcher] immediately on `person.detected`.
+  ///
+  /// Fires an Android notification when the app is NOT in the foreground.
+  /// When in foreground, provider invalidation (handled by DashboardSync)
+  /// already refreshes the UI — no notification needed.
+  void handleRealtimeDetection(DetectionEvent event) {
+    debugPrint('[NOTIF] event=${event.id}');
+    debugPrint('[NOTIF] camera=${event.cameraName}');
 
-    // Never bail out because previous is null.
-    // Treat null previous (startup / reconnect / provider refresh) as empty
-    // list so the very first batch is always processed.
-    if (nextValue == null) return;
-
-    final previousItems = previous?.valueOrNull?.items ?? [];
-
-    final newItems = nextValue.items
-        .where(
-          (item) => !previousItems.any((p) => p.id == item.id),
-        )
-        .toList();
-
-    // Diagnostics — visible in `flutter run` logcat.
-    debugPrint('[NOTIF] previous=${previousItems.length}');
-    debugPrint('[NOTIF] next=${nextValue.items.length}');
-    debugPrint('[NOTIF] new=${newItems.length}');
-
-    if (newItems.isEmpty) return;
-
-    // Foreground guard: only fire Android notifications when the app is NOT
-    // in the foreground. When the app is open, provider invalidation already
-    // refreshes the UI — no notification needed.
     final lifecycle = _ref.read(appLifecycleProvider);
-    final isForeground = lifecycle == AppLifecycleState.resumed;
-
     debugPrint('[NOTIF] lifecycle=$lifecycle');
 
+    final isForeground = lifecycle == AppLifecycleState.resumed;
+
     if (isForeground) {
-      debugPrint('[NOTIF] foreground skip (${newItems.length} item(s))');
+      debugPrint('[NOTIF] foreground skip');
       ObservabilityService.instance.info(
-        '[NOTIF] App in foreground — skipping Android notification '
-        '(${newItems.length} new item(s))',
+        '[NOTIF] foreground — skipping Android notification id=${event.id}',
       );
       return;
     }
 
-    final localNotificationService = _ref.read(localNotificationServiceProvider);
+    debugPrint('[NOTIF] showNotification id=${event.id}');
+    ObservabilityService.instance.info(
+      '[NOTIF] sending Android notification id=${event.id} camera=${event.cameraName}',
+    );
 
-    for (final item in newItems) {
-      debugPrint('[NOTIF] sending — ${item.cameraName}: ${item.message}');
-      ObservabilityService.instance.info(
-        '[NOTIF] sending Android notification id=${item.id} camera=${item.cameraName}',
-      );
-      localNotificationService.showNotification(
-        id: int.tryParse(item.id) ?? item.hashCode,
-        title: 'Deteksi Objek: ${item.cameraName}',
-        body: item.message,
-        payload: item.id,
-      );
-    }
+    _ref
+        .read(localNotificationServiceProvider)
+        .showNotification(
+          id: event.id,
+          title: 'Deteksi Objek: ${event.cameraName}',
+          body: event.message,
+          payload: event.id.toString(),
+        );
   }
 }
 
@@ -90,12 +77,8 @@ final notificationBridgeProvider = Provider<NotificationBridge>((ref) {
     bridge.init();
   });
 
-  ref.listen<AsyncValue<NotificationState>>(notificationProvider, (
-    previous,
-    next,
-  ) {
-    bridge.handleNotificationChanged(previous, next);
-  });
+  // No ref.listen — notifications are now event-driven via
+  // handleRealtimeDetection(), not state-diff-driven.
 
   return bridge;
 });
