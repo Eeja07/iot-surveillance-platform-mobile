@@ -9,18 +9,20 @@ class FirmwareHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             'Riwayat Pembaruan',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             itemCount: history.length,
             itemBuilder: (context, index) {
               final entry = history[index];
@@ -29,40 +31,66 @@ class FirmwareHistory extends StatelessWidget {
               ).format(entry.date);
               final isSuccess = entry.status == 'success';
 
-              return ListTile(
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isSuccess
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isSuccess
-                        ? Icons.check_circle_outline
-                        : Icons.error_outline,
-                    color: isSuccess ? Colors.green : Colors.red,
-                  ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8.0),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-                title: Text(
-                  'Versi ${entry.version}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isSuccess
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isSuccess
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
+                      color: isSuccess ? Colors.green : Colors.red,
+                      size: 20,
+                    ),
                   ),
-                ),
-                subtitle: Text(
-                  dateStr,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                trailing: Text(
-                  isSuccess ? 'Sukses' : 'Gagal',
-                  style: TextStyle(
-                    color: isSuccess ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                  title: Text(
+                    'Versi ${entry.version}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  subtitle: Text(
+                    dateStr,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isSuccess
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isSuccess ? 'Sukses' : 'Gagal',
+                      style: TextStyle(
+                        color: isSuccess ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ),
               );

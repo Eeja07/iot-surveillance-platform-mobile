@@ -22,120 +22,121 @@ class FirmwareCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Status Firmware',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (hasUpdate ? Colors.blue : Colors.green)
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.router_outlined,
+                        size: 20,
+                        color: hasUpdate ? Colors.blue : Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Firmware',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          currentVersion,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 OTAStatusChip(status: status, hasUpdate: hasUpdate),
               ],
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Icon(
-                  Icons.router,
-                  size: 48,
-                  color: hasUpdate ? Colors.blue : Colors.grey,
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Versi Sekarang',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ),
-                    Text(
-                      currentVersion,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+
             if (hasUpdate && status == OTAStatus.idle) ...[
-              const Divider(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Pembaruan Tersedia',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      Text(
-                        'Versi ${availableUpdate!.version} (${availableUpdate!.size})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[900] : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.blue.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.blue.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    const Text(
-                      'Catatan Rilis:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                    Icon(
+                      Icons.system_update_alt_outlined,
+                      color: Colors.blue,
+                      size: 18,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      availableUpdate!.releaseNotes,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pembaruan Tersedia — v${availableUpdate!.version}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          if (availableUpdate!.releaseNotes.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              availableUpdate!.releaseNotes,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color:
+                                    isDark ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                height: 44,
+                height: 52,
                 child: ElevatedButton.icon(
                   onPressed: onUpdatePressed,
-                  icon: const Icon(Icons.system_update_alt),
+                  icon: const Icon(Icons.system_update_alt, size: 18),
                   label: const Text('Update Sekarang'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),

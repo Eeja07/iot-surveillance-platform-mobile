@@ -14,84 +14,131 @@ class NotificationCard extends StatelessWidget {
     this.onMarkAsRead,
   });
 
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
+    if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+    if (diff.inDays < 7) return '${diff.inDays} hari lalu';
+    return DateFormat('dd MMM').format(dt);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final timeStr = DateFormat('HH:mm').format(notification.createdAt);
-    final dateStr = DateFormat('dd MMM yyyy').format(notification.createdAt);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isUnread = !notification.isRead;
+    final timeStr = _relativeTime(notification.createdAt);
+    final absTime = DateFormat('HH:mm').format(notification.createdAt);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: notification.isRead ? 1 : 3,
-      color: notification.isRead
-          ? (isDark ? Colors.grey[900] : Colors.grey[50])
-          : (isDark ? Colors.grey[850] : Colors.white),
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: notification.isRead
-                ? Colors.grey.withValues(alpha: 0.1)
-                : Colors.blue.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.notifications_active,
-            color: notification.isRead ? Colors.grey : Colors.blue,
-          ),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              notification.cameraName,
-              style: TextStyle(
-                fontWeight: notification.isRead
-                    ? FontWeight.normal
-                    : FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            Text(
-              timeStr,
-              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-            ),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                notification.message,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        elevation: isUnread ? 1 : 0,
+        shadowColor: Colors.black.withValues(alpha: 0.08),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon avatar
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isUnread
+                        ? Colors.blue.withValues(alpha: 0.12)
+                        : (isDark
+                            ? Colors.grey.withValues(alpha: 0.15)
+                            : Colors.grey.withValues(alpha: 0.08)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isUnread
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_outlined,
+                    color: isUnread ? Colors.blue : Colors.grey,
+                    size: 20,
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                dateStr,
-                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-              ),
-            ],
+                const SizedBox(width: 12),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.cameraName,
+                              style: TextStyle(
+                                fontWeight: isUnread
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                fontSize: 14,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            absTime,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey[500] : Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.message,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.grey[300] : Colors.grey[600],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            timeStr,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey[500] : Colors.grey[400],
+                            ),
+                          ),
+                          if (isUnread && onMarkAsRead != null)
+                            GestureDetector(
+                              onTap: onMarkAsRead,
+                              child: Text(
+                                'Tandai dibaca',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        trailing: !notification.isRead && onMarkAsRead != null
-            ? IconButton(
-                icon: const Icon(
-                  Icons.mark_chat_read_outlined,
-                  size: 20,
-                  color: Colors.blue,
-                ),
-                onPressed: onMarkAsRead,
-              )
-            : null,
       ),
     );
   }

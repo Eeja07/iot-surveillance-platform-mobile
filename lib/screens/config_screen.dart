@@ -141,7 +141,10 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size(88, 36),
+            ),
             child: const Text('Reboot'),
           ),
         ],
@@ -237,8 +240,9 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Card(
+                      elevation: 1,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -257,7 +261,6 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               value: _selectedFrameSize,
                               decoration: const InputDecoration(
                                 labelText: 'Frame Size',
-                                border: OutlineInputBorder(),
                               ),
                               items: frameSizes
                                   .map(
@@ -270,8 +273,8 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               onChanged: isBusy
                                   ? null
                                   : (val) => setState(
-                                      () => _selectedFrameSize = val,
-                                    ),
+                                        () => _selectedFrameSize = val,
+                                      ),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -280,7 +283,6 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               enabled: !isBusy,
                               decoration: const InputDecoration(
                                 labelText: 'JPEG Quality (1 - 100)',
-                                border: OutlineInputBorder(),
                               ),
                             ),
                           ],
@@ -289,8 +291,9 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                     ),
                     const SizedBox(height: 16),
                     Card(
+                      elevation: 1,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -311,7 +314,6 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               enabled: !isBusy,
                               decoration: const InputDecoration(
                                 labelText: 'Interval Capture (ms)',
-                                border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -321,7 +323,6 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               enabled: !isBusy,
                               decoration: const InputDecoration(
                                 labelText: 'Interval Telemetry (ms)',
-                                border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -331,7 +332,6 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               enabled: !isBusy,
                               decoration: const InputDecoration(
                                 labelText: 'MQTT Buffer Count',
-                                border: OutlineInputBorder(),
                               ),
                             ),
                           ],
@@ -340,8 +340,9 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                     ),
                     const SizedBox(height: 16),
                     Card(
+                      elevation: 1,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -357,6 +358,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                             ),
                             const SizedBox(height: 8),
                             SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
                               title: const Text('Capture Gambar Aktif'),
                               value: _imageEnabled,
                               onChanged: isBusy
@@ -365,6 +367,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                                         setState(() => _imageEnabled = val),
                             ),
                             SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
                               title: const Text('Telemetry Aktif'),
                               value: _telemetryEnabled,
                               onChanged: isBusy
@@ -373,6 +376,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                                         setState(() => _telemetryEnabled = val),
                             ),
                             SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
                               title: const Text('Update OTA Aktif'),
                               value: _otaEnabled,
                               onChanged: isBusy
@@ -386,7 +390,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 52,
                       child: ElevatedButton.icon(
                         onPressed: isBusy ? null : _applyConfig,
                         icon: const Icon(Icons.save),
@@ -399,7 +403,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                         ),
                         style: ElevatedButton.styleFrom(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
@@ -409,15 +413,15 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 50,
+                            height: 52,
                             child: OutlinedButton.icon(
                               onPressed: isBusy ? null : _captureNow,
                               icon: const Icon(Icons.camera_alt),
                               label: const Text('Capture Now'),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.blue),
+                                side: BorderSide(color: Theme.of(context).primaryColor),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                             ),
@@ -426,7 +430,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: SizedBox(
-                            height: 50,
+                            height: 52,
                             child: OutlinedButton.icon(
                               onPressed: isBusy ? null : _rebootCamera,
                               icon: const Icon(
@@ -440,7 +444,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: Colors.red),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                             ),
@@ -458,7 +462,7 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
                   child: Center(
                     child: Card(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(

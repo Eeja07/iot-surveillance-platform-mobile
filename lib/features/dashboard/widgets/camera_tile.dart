@@ -16,23 +16,30 @@ class CameraTile extends StatelessWidget {
     required this.onLongPress,
   });
 
+  String _relativeLastSeen(DateTime? lastSeen) {
+    if (lastSeen == null) return '';
+    final diff = DateTime.now().difference(lastSeen);
+    if (diff.inSeconds < 60) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m lalu';
+    if (diff.inHours < 24) return '${diff.inHours}j lalu';
+    return '${diff.inDays}h lalu';
+  }
+
   @override
   Widget build(BuildContext context) {
     final double? cardWidth = isHorizontal ? 160 : null;
-    final Color statusColor = camera.isOnline
-        ? AppColors.success
-        : AppColors.danger;
+    final bool isOnline = camera.isOnline;
+    final Color statusColor = isOnline ? AppColors.success : AppColors.danger;
+    final String statusLabel = isOnline ? 'Online' : 'Offline';
+    final lastSeenText = _relativeLastSeen(camera.lastSeen);
 
     return SizedBox(
       width: cardWidth,
       child: Card(
-        elevation: 2,
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -43,10 +50,10 @@ class CameraTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // Thumbnail / placeholder
               Container(
-                color: Theme.of(context).cardTheme.color?.withAlpha(40),
-                child:
-                    (camera.thumbnailUrl != null &&
+                color: Theme.of(context).colorScheme.surface,
+                child: (camera.thumbnailUrl != null &&
                         camera.thumbnailUrl!.isNotEmpty)
                     ? Image.network(
                         camera.thumbnailUrl!,
@@ -55,8 +62,8 @@ class CameraTile extends StatelessWidget {
                         height: double.infinity,
                         errorBuilder: (ctx, err, stack) => Center(
                           child: Icon(
-                            Icons.videocam_off,
-                            size: 40,
+                            Icons.videocam_off_outlined,
+                            size: 36,
                             color: Colors.grey[400],
                           ),
                         ),
@@ -64,8 +71,8 @@ class CameraTile extends StatelessWidget {
                           if (progress == null) return child;
                           return Center(
                             child: SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 value: progress.expectedTotalBytes != null
@@ -79,25 +86,26 @@ class CameraTile extends StatelessWidget {
                       )
                     : Center(
                         child: Icon(
-                          Icons.videocam,
-                          size: 40,
+                          Icons.videocam_outlined,
+                          size: 36,
                           color: Colors.grey[400],
                         ),
                       ),
               ),
 
+              // Bottom gradient overlay
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: 60,
+                  height: 72,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.8),
+                        Colors.black.withValues(alpha: 0.75),
                         Colors.transparent,
                       ],
                     ),
@@ -105,42 +113,83 @@ class CameraTile extends StatelessWidget {
                 ),
               ),
 
+              // Status badge (top-right)
               Positioned(
                 top: 8,
                 right: 8,
                 child: Container(
-                  width: 12,
-                  height: 12,
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    color: statusColor.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
 
+              // Camera name + last seen (bottom)
               Positioned(
                 bottom: 8,
                 left: 10,
                 right: 10,
-                child: Text(
-                  camera.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 2)],
-                  ),
-                  textAlign: TextAlign.left,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      camera.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (lastSeenText.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        lastSeenText,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.75),
+                          fontSize: 10,
+                          shadows: const [
+                            Shadow(color: Colors.black54, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],

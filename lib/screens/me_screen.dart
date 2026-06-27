@@ -44,6 +44,16 @@ class _MeScreenState extends ConsumerState<MeScreen> {
     _loadUserData();
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _currentPassController.dispose();
+    _newPassController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserData() async {
     final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
@@ -84,7 +94,6 @@ class _MeScreenState extends ConsumerState<MeScreen> {
 
   void _logout() async {
     await ref.read(authProvider.notifier).logout();
-
     if (mounted) {
       context.go(AppRoutes.login);
     }
@@ -96,11 +105,12 @@ class _MeScreenState extends ConsumerState<MeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Ubah $title'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: TextField(
           controller: editController,
+          autofocus: true,
           decoration: InputDecoration(
             labelText: '$title Baru',
-            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -116,6 +126,9 @@ class _MeScreenState extends ConsumerState<MeScreen> {
                 title == 'Email' ? editController.text : _emailController.text,
               );
             },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(88, 36),
+            ),
             child: const Text('Simpan'),
           ),
         ],
@@ -199,6 +212,9 @@ class _MeScreenState extends ConsumerState<MeScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        _currentPassController.clear();
+        _newPassController.clear();
+        _confirmPassController.clear();
         await Future.delayed(const Duration(seconds: 2));
         _logout();
       } else {
@@ -214,136 +230,299 @@ class _MeScreenState extends ConsumerState<MeScreen> {
     }
   }
 
+  void _showChangePasswordBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Ganti Password',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => context.pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _currentPassController,
+                      obscureText: _obscureCurrent,
+                      decoration: InputDecoration(
+                        labelText: 'Password Saat Ini',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureCurrent
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setModalState(
+                              () => _obscureCurrent = !_obscureCurrent),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _newPassController,
+                      obscureText: _obscureNew,
+                      decoration: InputDecoration(
+                        labelText: 'Password Baru',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureNew
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setModalState(
+                              () => _obscureNew = !_obscureNew),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _confirmPassController,
+                      obscureText: _obscureConfirm,
+                      decoration: InputDecoration(
+                        labelText: 'Konfirmasi Password Baru',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setModalState(
+                              () => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          context.pop();
+                          _changePassword();
+                        },
+                        child: const Text('Simpan Password Baru'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil Saya'),
+        title: const Text('Pengaturan'),
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round,
-            ),
-            onPressed: widget.toggleTheme,
-            tooltip: isDark ? 'Mode Terang' : 'Mode Gelap',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.danger),
-            onPressed: _logout,
-            tooltip: 'Logout',
-          ),
-        ],
       ),
       body: !_isDataLoaded
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionTitle('Informasi Akun'),
-                      const SizedBox(height: 16),
-
-                      _buildReadOnlyField(
-                        label: 'Nama Lengkap',
-                        controller: _nameController,
-                        icon: Icons.person_outline,
-                        onTap: () => _showEditDialog('Nama', _nameController),
-                      ),
-                      const SizedBox(height: 16),
-
-                      _buildReadOnlyField(
-                        label: 'Email',
-                        controller: _emailController,
-                        icon: Icons.email_outlined,
-                        onTap: null,
-                      ),
-
-                      const SizedBox(height: 32),
-                      const Divider(thickness: 1),
-                      const SizedBox(height: 16),
-                      _buildSectionTitle('Ganti Password'),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(
-                        label: 'Password Saat Ini',
-                        controller: _currentPassController,
-                        obscureText: _obscureCurrent,
-                        onToggle: () =>
-                            setState(() => _obscureCurrent = !_obscureCurrent),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(
-                        label: 'Password Baru',
-                        controller: _newPassController,
-                        obscureText: _obscureNew,
-                        onToggle: () =>
-                            setState(() => _obscureNew = !_obscureNew),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(
-                        label: 'Konfirmasi Password Baru',
-                        controller: _confirmPassController,
-                        obscureText: _obscureConfirm,
-                        onToggle: () =>
-                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      // User Profile Header Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundColor: primaryColor.withValues(alpha: 0.1),
+                              child: Text(
+                                _nameController.text.isNotEmpty
+                                    ? _nameController.text[0].toUpperCase()
+                                    : 'U',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _nameController.text,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _emailController.text,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.textSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              onPressed: () => _showEditDialog('Nama', _nameController),
+                              tooltip: 'Edit Nama',
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
+
+                      _buildSectionHeader('Akun & Keamanan'),
+                      Card(
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.lock_outline_rounded),
+                              title: const Text('Ganti Password'),
+                              subtitle: const Text('Perbarui kredensial login Anda'),
+                              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                              onTap: _showChangePasswordBottomSheet,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      _buildSectionHeader('Preferensi'),
+                      Card(
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              secondary: Icon(
+                                isDark
+                                    ? Icons.dark_mode_outlined
+                                    : Icons.light_mode_outlined,
+                              ),
+                              title: const Text('Mode Gelap'),
+                              subtitle: Text(isDark ? 'Tema gelap aktif' : 'Tema terang aktif'),
+                              value: isDark,
+                              onChanged: (_) => widget.toggleTheme(),
+                            ),
+                            const Divider(height: 1, indent: 56),
+                            ListTile(
+                              leading: const Icon(Icons.notifications_none_rounded),
+                              title: const Text('Notifikasi CCTV'),
+                              subtitle: const Text('Lihat & atur riwayat notifikasi'),
+                              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                              onTap: () => context.go(AppRoutes.notifications),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      _buildSectionHeader('Lainnya'),
+                      Card(
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.help_outline_rounded),
+                              title: const Text('Bantuan & Panduan'),
+                              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                              onTap: () => context.go(AppRoutes.help),
+                            ),
+                            const Divider(height: 1, indent: 56),
+                            ListTile(
+                              leading: const Icon(Icons.info_outline_rounded),
+                              title: const Text('Tentang Aplikasi'),
+                              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                              onTap: () => context.go(AppRoutes.about),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Logout Button
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _changePassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Simpan Password Baru',
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed: _logout,
+                          icon: const Icon(Icons.logout_rounded, color: AppColors.danger),
+                          label: const Text(
+                            'Keluar dari Akun',
                             style: TextStyle(
-                              fontSize: 16,
+                              color: AppColors.danger,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.danger, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(height: 32),
-                      const Divider(thickness: 1),
-                      const SizedBox(height: 10),
-                      _buildSectionTitle('Lainnya'),
-                      const SizedBox(height: 10),
-
-                      ListTile(
-                        leading: const Icon(Icons.notifications_outlined),
-                        title: const Text('Notifikasi'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          context.go(AppRoutes.notifications);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.help_outline),
-                        title: const Text('Bantuan & Panduan'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          context.go(AppRoutes.help);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.info_outline),
-                        title: const Text('Tentang Aplikasi'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          context.go(AppRoutes.about);
-                        },
                       ),
                       const SizedBox(height: 40),
                     ],
@@ -359,61 +538,16 @@ class _MeScreenState extends ConsumerState<MeScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Theme.of(context).primaryColor,
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.grey,
+        letterSpacing: 0.5,
       ),
-    );
-  }
-
-  Widget _buildReadOnlyField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    VoidCallback? onTap,
-  }) {
-    return TextField(
-      controller: controller,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-
-        suffixIcon: onTap != null
-            ? IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                onPressed: onTap,
-              )
-            : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Theme.of(context).cardColor,
-      ),
-    );
-  }
-
-  Widget _buildPasswordField({
-    required String label,
-    required TextEditingController controller,
-    required bool obscureText,
-    required VoidCallback onToggle,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline),
-        suffixIcon: IconButton(
-          icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility),
-          onPressed: onToggle,
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      child: Text(title.toUpperCase()),
     );
   }
 }

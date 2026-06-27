@@ -25,7 +25,6 @@ class _EditCameraScreenState extends State<EditCameraScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.camera.name);
-
     _descriptionController = TextEditingController(
       text: widget.camera.description ?? '',
     );
@@ -71,46 +70,63 @@ class _EditCameraScreenState extends State<EditCameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Kamera')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nama Kamera',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.videocam),
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                validator: (v) => v!.isEmpty ? 'Nama tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Deskripsi Kamera',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                  hintText: 'Contoh: CCTV Depan Rumah',
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Kamera',
+                          prefixIcon: Icon(Icons.videocam_outlined),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Deskripsi Kamera',
+                          prefixIcon: Icon(Icons.description_outlined),
+                          hintText: 'Contoh: CCTV Depan Rumah',
+                        ),
+                        maxLines: 3,
+                        validator: (v) => null,
+                      ),
+                    ],
+                  ),
                 ),
-                maxLines: 3,
-                validator: (v) => null,
               ),
-
               const SizedBox(height: 24),
               _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: _submit,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _submit,
+                        child: const Text(
+                          'Simpan Perubahan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      child: const Text('Simpan Perubahan'),
                     ),
             ],
           ),
