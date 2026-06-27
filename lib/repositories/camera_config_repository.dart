@@ -25,12 +25,12 @@ class CameraConfig {
 
   factory CameraConfig.fromJson(Map<String, dynamic> json) {
     return CameraConfig(
-      jpegQuality: (json['jpeg_quality'] as num?)?.toInt() ?? 80,
-      frameSize: json['frame_size'] as String? ?? 'QVGA',
-      captureIntervalMs: (json['capture_interval_ms'] as num?)?.toInt() ?? 5000,
+      jpegQuality: (json['jpeg_quality'] as num?)?.toInt() ?? 20,
+      frameSize: json['frame_size'] as String? ?? 'VGA',
+      captureIntervalMs: (json['capture_interval_ms'] as num?)?.toInt() ?? 3000,
       telemetryIntervalMs:
-          (json['telemetry_interval_ms'] as num?)?.toInt() ?? 10000,
-      mqttBuffer: (json['mqtt_buffer'] as num?)?.toInt() ?? 10,
+          (json['telemetry_interval_ms'] as num?)?.toInt() ?? 3000,
+      mqttBuffer: (json['mqtt_buffer'] as num?)?.toInt() ?? 32768,
       imageEnabled: json['image_enabled'] as bool? ?? true,
       telemetryEnabled: json['telemetry_enabled'] as bool? ?? true,
       otaEnabled: json['ota_enabled'] as bool? ?? true,

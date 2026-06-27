@@ -61,16 +61,16 @@ class _ConfigScreenState extends ConsumerState<ConfigScreen> {
   }
 
   Future<void> _applyConfig() async {
-    final quality = int.tryParse(_jpegQualityController.text) ?? 80;
+    final quality = int.tryParse(_jpegQualityController.text) ?? 20;
     final captureInterval =
-        int.tryParse(_captureIntervalController.text) ?? 5000;
+        int.tryParse(_captureIntervalController.text) ?? 3000;
     final telemetryInterval =
-        int.tryParse(_telemetryIntervalController.text) ?? 10000;
-    final buffer = int.tryParse(_mqttBufferController.text) ?? 10;
+        int.tryParse(_telemetryIntervalController.text) ?? 3000;
+    final buffer = int.tryParse(_mqttBufferController.text) ?? 32768;
 
     final newConfig = CameraConfig(
       jpegQuality: quality,
-      frameSize: _selectedFrameSize ?? 'QVGA',
+      frameSize: _selectedFrameSize ?? 'VGA',
       captureIntervalMs: captureInterval,
       telemetryIntervalMs: telemetryInterval,
       mqttBuffer: buffer,
