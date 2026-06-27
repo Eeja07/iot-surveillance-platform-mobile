@@ -10,7 +10,6 @@ class CameraTimelineSelector extends StatelessWidget {
   final VoidCallback onDateTap;
   final ValueChanged<int?> onHourChanged;
   final ValueChanged<int?> onMinuteChanged;
-  final VoidCallback onApply;
 
   const CameraTimelineSelector({
     super.key,
@@ -22,7 +21,6 @@ class CameraTimelineSelector extends StatelessWidget {
     required this.onDateTap,
     required this.onHourChanged,
     required this.onMinuteChanged,
-    required this.onApply,
   });
 
   @override
@@ -121,14 +119,6 @@ class CameraTimelineSelector extends StatelessWidget {
                     ],
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: onApply,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Tampilkan Rekaman'),
               ),
             ],
           ),

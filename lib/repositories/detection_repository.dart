@@ -34,13 +34,18 @@ class DetectionRepository {
     if (result is ApiSuccess<Map<String, dynamic>>) {
       final List<dynamic> data = result.data['data'] ?? [];
       final list = data.map((json) {
+        final confNum = json['confidence'] as num?;
+        final formattedConf = confNum != null
+            ? (confNum >= 0.0 && confNum <= 1.0
+                ? '${(confNum * 100).toStringAsFixed(1)}%'
+                : '${confNum.toStringAsFixed(1)}%')
+            : '0.0%';
         return CctvNotification(
           id: json['id']?.toString() ?? '',
           cameraId: json['camera_id'] as int? ?? 0,
           cameraName: json['camera_name'] as String? ?? 'Kamera',
           imageUrl: json['image_url'] as String?,
-          message:
-              'Objek terdeteksi (Confidence: ${(json['confidence'] as num?)?.toStringAsFixed(1) ?? '0.0'}%)',
+          message: 'Objek terdeteksi (Confidence: $formattedConf)',
           createdAt: json['detected_at'] != null
               ? DateTime.tryParse(json['detected_at'].toString()) ??
                     DateTime.now()
@@ -82,9 +87,12 @@ class DetectionRepository {
       final List<dynamic> data = result.data['data'] ?? [];
       final list = data.map((json) {
         final personConf = json['person_confidence'] as num?;
-        final confStr = personConf != null
-            ? ' (Person: ${personConf.toStringAsFixed(1)}%)'
-            : '';
+        final formattedConf = personConf != null
+            ? (personConf >= 0.0 && personConf <= 1.0
+                ? '${(personConf * 100).toStringAsFixed(1)}%'
+                : '${personConf.toStringAsFixed(1)}%')
+            : null;
+        final confStr = formattedConf != null ? ' (Person: $formattedConf)' : '';
         return CctvNotification(
           id: json['id']?.toString() ?? '',
           cameraId: json['camera_id'] as int? ?? 0,

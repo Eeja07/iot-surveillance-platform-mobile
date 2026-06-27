@@ -31,7 +31,18 @@ class DetectionEvent {
       if (id == null) return null;
 
       final cameraName = data['camera_name']?.toString() ?? 'Kamera';
-      final confidence = data['confidence']?.toString();
+      final rawConfidence = data['confidence'];
+      String? confidence;
+      if (rawConfidence != null) {
+        final confNum = double.tryParse(rawConfidence.toString());
+        if (confNum != null) {
+          confidence = confNum >= 0.0 && confNum <= 1.0
+              ? '${(confNum * 100).toStringAsFixed(1)}%'
+              : '${confNum.toStringAsFixed(1)}%';
+        } else {
+          confidence = rawConfidence.toString();
+        }
+      }
       final imageUrl = data['image_url']?.toString();
 
       final body = confidence != null && confidence.isNotEmpty

@@ -253,18 +253,6 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     );
   }
 
-  void _applyFilter() {
-    if (_selectedHour == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan pilih jam terlebih dahulu.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-    _updateMinuteFoldersAndList();
-  }
 
   Future<void> _fetchImagesForMinute(
     String hour,
@@ -412,12 +400,12 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
                     _selectedMinute = null;
                   });
                   _fetchAvailableMinutes();
+                  _updateMinuteFoldersAndList();
                 },
                 onMinuteChanged: (v) {
                   setState(() => _selectedMinute = v);
                   _updateMinuteFoldersAndList();
                 },
-                onApply: _applyFilter,
               ),
               Expanded(
                 child: _selectedHour == null
