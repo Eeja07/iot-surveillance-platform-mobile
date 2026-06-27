@@ -28,6 +28,7 @@ import '../storage/session_service.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../services/camera_service.dart';
 import '../../features/notification/providers/notification_provider.dart';
+import '../network/dio_client.dart';
 
 /// Provides the [SessionService] singleton from [AppLocator].
 ///
@@ -70,4 +71,10 @@ final cameraServiceProvider = Provider<CameraService>(
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => const NotificationService(),
   name: 'notificationServiceProvider',
+);
+
+/// Provides the [DioClient] singleton from [AppLocator].
+final dioClientProvider = Provider<DioClient>(
+  (ref) => AppLocator.instance.dioClient,
+  name: 'dioClientProvider',
 );

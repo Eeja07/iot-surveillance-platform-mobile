@@ -11,12 +11,15 @@ class OTAScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(otaNotifierProvider);
+    final stateAsync = ref.watch(otaNotifierProvider);
     final notifier = ref.read(otaNotifierProvider.notifier);
 
-    ref.listen<OTAState>(otaNotifierProvider, (previous, next) {
-      if (next.status == OTAStatus.success &&
-          previous?.status != OTAStatus.success) {
+    ref.listen<AsyncValue<OTAState>>(otaNotifierProvider, (previous, next) {
+      final prevVal = previous?.valueOrNull;
+      final nextVal = next.valueOrNull;
+      if (nextVal != null &&
+          nextVal.status == OTAStatus.success &&
+          prevVal?.status != OTAStatus.success) {
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -29,7 +32,7 @@ class OTAScreen extends ConsumerWidget {
               ],
             ),
             content: Text(
-              'Firmware berhasil diperbarui ke versi ${next.currentVersion}. Perangkat Anda telah dimulai ulang dengan sukses.',
+              'Firmware berhasil diperbarui ke versi ${nextVal.currentVersion}. Perangkat Anda telah dimulai ulang dengan sukses.',
             ),
             actions: [
               TextButton(
@@ -45,36 +48,42 @@ class OTAScreen extends ConsumerWidget {
       }
     });
 
+    final otaState = stateAsync.valueOrNull;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pembaruan OTA'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: state.status == OTAStatus.idle
-                ? () => notifier.checkForUpdates()
+            onPressed: otaState == null || otaState.status == OTAStatus.idle
+                ? () => notifier.refresh()
                 : null,
           ),
         ],
       ),
-      body: state.isLoading
+      body: stateAsync.isLoading && otaState == null
           ? const OTALoading()
+          : stateAsync.hasError && otaState == null
+          ? Center(child: Text('Gagal memuat data OTA: ${stateAsync.error}'))
+          : otaState == null
+          ? const Center(child: Text('Tidak ada data.'))
           : Column(
               children: [
                 FirmwareCard(
-                  currentVersion: state.currentVersion,
-                  availableUpdate: state.availableUpdate,
-                  status: state.status,
+                  currentVersion: otaState.currentVersion,
+                  availableUpdate: otaState.availableUpdate,
+                  status: otaState.status,
                   onUpdatePressed: () => notifier.startUpdate(),
                 ),
-                if (state.status == OTAStatus.downloading ||
-                    state.status == OTAStatus.flashing)
+                if (otaState.status == OTAStatus.downloading ||
+                    otaState.status == OTAStatus.flashing)
                   OTAProgressCard(
-                    status: state.status,
-                    progress: state.progress,
+                    status: otaState.status,
+                    progress: otaState.progress,
                   ),
                 const SizedBox(height: 8),
-                Expanded(child: FirmwareHistory(history: state.history)),
+                Expanded(child: FirmwareHistory(history: otaState.history)),
               ],
             ),
     );

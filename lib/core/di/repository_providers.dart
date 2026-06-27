@@ -29,6 +29,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/camera_model.dart';
 import '../../services/camera_service.dart';
 import '../../features/notification/providers/notification_provider.dart';
+import '../../repositories/detection_repository.dart';
+import '../../repositories/overview_repository.dart';
+import '../../repositories/ota_repository.dart';
+import '../../repositories/camera_config_repository.dart';
+import '../network/dio_client.dart';
+import '../network/api_result.dart';
 import 'providers.dart';
 
 // ---------------------------------------------------------------------------
@@ -123,26 +129,61 @@ final cameraRepositoryProvider = Provider<CameraRepository>(
 // NotificationRepository — CCTV alert data
 // ---------------------------------------------------------------------------
 
-/// Thin repository adapter for CCTV notification data.
-///
-/// Wraps [NotificationService] so that [NotificationNotifier] depends on
-/// this adapter rather than directly on [notificationServiceProvider].
+/// Repository for CCTV notification data.
 class NotificationRepository {
-  final NotificationService _service;
+  final DioClient _client;
 
-  const NotificationRepository(this._service);
+  const NotificationRepository(this._client);
 
   /// Fetches all notifications for the authenticated user.
-  Future<List<CctvNotification>> fetchNotifications(String token) =>
-      _service.fetchNotifications(token);
+  Future<List<CctvNotification>> fetchNotifications() async {
+    final result = await _client.get<Map<String, dynamic>>('/notifications');
+    if (result is ApiSuccess<Map<String, dynamic>>) {
+      final List<dynamic> items =
+          result.data['data'] ?? result.data['items'] ?? [];
+      return items.map((item) => CctvNotification.fromJson(item)).toList();
+    }
+    return [];
+  }
 
   /// Marks notification [id] as read.
-  Future<bool> markAsRead(String token, String id) =>
-      _service.markAsRead(token, id);
+  Future<bool> markAsRead(String id) async {
+    final result = await _client.post<Map<String, dynamic>>(
+      '/notifications/$id/read',
+    );
+    if (result is ApiSuccess<Map<String, dynamic>>) {
+      return result.data['success'] as bool? ?? true;
+    }
+    return false;
+  }
 }
 
-/// Provides a [NotificationRepository] backed by [NotificationService].
+/// Provides a [NotificationRepository] backed by [DioClient].
 final notificationRepositoryProvider = Provider<NotificationRepository>(
-  (ref) => NotificationRepository(ref.watch(notificationServiceProvider)),
+  (ref) => NotificationRepository(ref.watch(dioClientProvider)),
   name: 'notificationRepositoryProvider',
+);
+
+/// Provides a [DetectionRepository] backed by [DioClient].
+final detectionRepositoryProvider = Provider<DetectionRepository>(
+  (ref) => DetectionRepository(ref.watch(dioClientProvider)),
+  name: 'detectionRepositoryProvider',
+);
+
+/// Provides an [OverviewRepository] backed by [DioClient].
+final overviewRepositoryProvider = Provider<OverviewRepository>(
+  (ref) => OverviewRepository(ref.watch(dioClientProvider)),
+  name: 'overviewRepositoryProvider',
+);
+
+/// Provides an [OtaRepository] backed by [DioClient].
+final otaRepositoryProvider = Provider<OtaRepository>(
+  (ref) => OtaRepository(ref.watch(dioClientProvider)),
+  name: 'otaRepositoryProvider',
+);
+
+/// Provides a [CameraConfigRepository] backed by [DioClient].
+final cameraConfigRepositoryProvider = Provider<CameraConfigRepository>(
+  (ref) => CameraConfigRepository(ref.watch(dioClientProvider)),
+  name: 'cameraConfigRepositoryProvider',
 );

@@ -23,6 +23,10 @@ import '../../screens/image_viewer_screen.dart';
 import '../../screens/forgot_password_screen.dart';
 import '../../screens/verification_screen.dart';
 import '../../screens/register_screen.dart';
+import '../../screens/ota_screen.dart';
+import '../../screens/detection_screen.dart';
+import '../../screens/notification_screen.dart';
+import '../../screens/config_screen.dart';
 import '../../models/camera_model.dart';
 
 class AppRouter {
@@ -167,6 +171,24 @@ class AppRouter {
                   parentNavigatorKey: rootNavigatorKey,
                   builder: (context, state) => const AddGroupScreen(),
                 ),
+                GoRoute(
+                  path: 'ota',
+                  parentNavigatorKey: rootNavigatorKey,
+                  builder: (context, state) => const OTAScreen(),
+                ),
+                GoRoute(
+                  path: 'detections',
+                  parentNavigatorKey: rootNavigatorKey,
+                  builder: (context, state) => const DetectionScreen(),
+                ),
+                GoRoute(
+                  path: 'camera-config',
+                  parentNavigatorKey: rootNavigatorKey,
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>;
+                    return ConfigScreen(camera: extra['camera'] as Camera);
+                  },
+                ),
               ],
             ),
             GoRoute(
@@ -175,6 +197,13 @@ class AppRouter {
                 toggleTheme: _toggleTheme,
                 isDarkMode: _isDarkMode(),
               ),
+              routes: [
+                GoRoute(
+                  path: 'notifications',
+                  parentNavigatorKey: rootNavigatorKey,
+                  builder: (context, state) => const NotificationScreen(),
+                ),
+              ],
             ),
           ],
         ),

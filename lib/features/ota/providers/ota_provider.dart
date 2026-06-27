@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/di/repository_providers.dart';
+import '../../../core/network/api_result.dart';
+import '../../../features/dashboard/providers/dashboard_provider.dart';
 
 class FirmwareInfo {
+  final int? id;
   final String version;
   final String releaseNotes;
   final DateTime releaseDate;
   final String size;
 
   const FirmwareInfo({
+    this.id,
     required this.version,
     required this.releaseNotes,
     required this.releaseDate,
@@ -75,109 +80,214 @@ class OTAState {
   }
 }
 
-class OTANotifier extends StateNotifier<OTAState> {
-  Timer? _simulationTimer;
+class OTANotifier extends AutoDisposeAsyncNotifier<OTAState> {
+  Timer? _pollingTimer;
 
-  OTANotifier()
-    : super(
-        OTAState(
-          currentVersion: 'v1.2.0',
-          availableUpdate: FirmwareInfo(
-            version: 'v1.3.0',
-            releaseNotes:
-                '• Memperbaiki stabilitas koneksi WebSocket.\n• Menambahkan optimasi latensi feed video.\n• Patch keamanan enkripsi data.',
-            releaseDate: DateTime.now().subtract(const Duration(days: 1)),
-            size: '14.2 MB',
-          ),
-          status: OTAStatus.idle,
-          progress: 0.0,
-          history: [
-            OTAHistoryEntry(
-              version: 'v1.2.0',
-              date: DateTime.now().subtract(const Duration(days: 30)),
-              status: 'success',
-            ),
-            OTAHistoryEntry(
-              version: 'v1.1.5',
-              date: DateTime.now().subtract(const Duration(days: 60)),
-              status: 'success',
-            ),
-          ],
-        ),
-      );
+  @override
+  Future<OTAState> build() async {
+    return _loadInitialState();
+  }
 
-  Future<void> checkForUpdates() async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(seconds: 1));
-    state = state.copyWith(
-      isLoading: false,
-      availableUpdate: FirmwareInfo(
-        version: 'v1.3.0',
-        releaseNotes:
-            '• Memperbaiki stabilitas koneksi WebSocket.\n• Menambahkan optimasi latensi feed video.\n• Patch keamanan enkripsi data.',
-        releaseDate: DateTime.now().subtract(const Duration(days: 1)),
-        size: '14.2 MB',
+  Future<OTAState> _loadInitialState() async {
+    final repo = ref.read(otaRepositoryProvider);
+
+    // Load latest firmware
+    final fwResult = await repo.fetchLatestFirmware();
+    FirmwareInfo? latestFw;
+    if (fwResult is ApiSuccess<FirmwareInfo>) {
+      latestFw = fwResult.data;
+    } else if (fwResult is ApiFailure<FirmwareInfo>) {
+      throw fwResult.exception;
+    }
+
+    // Load deployments history
+    final historyResult = await repo.fetchDeployments();
+    List<OTAHistoryEntry> history = [];
+    if (historyResult is ApiSuccess<List<OTAHistoryEntry>>) {
+      history = historyResult.data;
+    } else if (historyResult is ApiFailure<List<OTAHistoryEntry>>) {
+      throw historyResult.exception;
+    }
+
+    // Determine current version of the first camera in the dashboard (if online)
+    // Or fallback to the latest successful deployment version, or default to 'v1.2.0'
+    final latestSuccessDeployment = history.firstWhere(
+      (e) => e.status == 'success',
+      orElse: () => OTAHistoryEntry(
+        version: 'v1.2.0',
+        date: DateTime(2000),
+        status: 'success',
       ),
+    );
+    final currentVersion = latestSuccessDeployment.version;
+
+    // Check if update is available
+    final availableUpdate =
+        (latestFw != null && latestFw.version != currentVersion)
+        ? latestFw
+        : null;
+
+    // Determine OTA status from the latest deployment in progress
+    OTAStatus status = OTAStatus.idle;
+    double progress = 0.0;
+    final latestDeployment = history.firstOrNull;
+    if (latestDeployment != null) {
+      final s = latestDeployment.status.toLowerCase();
+      if (s == 'pending' || s == 'running' || s == 'downloading') {
+        status = OTAStatus.downloading;
+        progress = 0.5;
+        _startPolling();
+      } else if (s == 'flashing') {
+        status = OTAStatus.flashing;
+        progress = 0.8;
+        _startPolling();
+      }
+    }
+
+    return OTAState(
+      currentVersion: currentVersion,
+      availableUpdate: availableUpdate,
+      status: status,
+      progress: progress,
+      history: history,
     );
   }
 
-  void startUpdate() {
-    if (state.availableUpdate == null || state.status != OTAStatus.idle) return;
+  /// Exposed method to check for updates.
+  Future<void> checkForUpdates() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _loadInitialState());
+  }
 
-    state = state.copyWith(status: OTAStatus.downloading, progress: 0.0);
+  /// Exposed method to load latest firmware info.
+  Future<FirmwareInfo?> loadFirmware() async {
+    final repo = ref.read(otaRepositoryProvider);
+    final result = await repo.fetchLatestFirmware();
+    if (result is ApiSuccess<FirmwareInfo>) {
+      return result.data;
+    }
+    return null;
+  }
 
-    _simulationTimer?.cancel();
-    double currentProgress = 0.0;
+  /// Exposed method to load OTA deployments.
+  Future<List<OTAHistoryEntry>> loadDeployments() async {
+    final repo = ref.read(otaRepositoryProvider);
+    final result = await repo.fetchDeployments();
+    if (result is ApiSuccess<List<OTAHistoryEntry>>) {
+      return result.data;
+    }
+    return [];
+  }
 
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 150), (
-      timer,
-    ) {
-      if (state.status == OTAStatus.downloading) {
-        currentProgress += 0.05;
-        if (currentProgress >= 1.0) {
-          state = state.copyWith(status: OTAStatus.flashing, progress: 0.0);
-          currentProgress = 0.0;
-        } else {
-          state = state.copyWith(progress: currentProgress);
-        }
-      } else if (state.status == OTAStatus.flashing) {
-        currentProgress += 0.08;
-        if (currentProgress >= 1.0) {
-          timer.cancel();
-          final nextVersion = state.availableUpdate!.version;
-          final updatedHistory = [
-            OTAHistoryEntry(
-              version: nextVersion,
-              date: DateTime.now(),
-              status: 'success',
+  /// Exposed method to refresh all OTA state.
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _loadInitialState());
+  }
+
+  /// Exposed method to initiate an OTA deployment for a camera.
+  Future<void> deploy(int cameraId, {int? firmwareId}) async {
+    state = const AsyncLoading();
+    final repo = ref.read(otaRepositoryProvider);
+    final result = await repo.deployOta(cameraId, firmwareId: firmwareId);
+
+    if (result is ApiSuccess<Map<String, dynamic>>) {
+      // Successfully initiated deployment. Start polling for status.
+      state = await AsyncValue.guard(() => _loadInitialState());
+      _startPolling();
+    } else if (result is ApiFailure<Map<String, dynamic>>) {
+      throw result.exception;
+    }
+  }
+
+  /// Triggered from the UI to start update on the first available camera.
+  Future<void> startUpdate() async {
+    final currentOtaState = state.valueOrNull;
+    if (currentOtaState == null || currentOtaState.availableUpdate == null)
+      return;
+
+    final dashboard = ref.read(dashboardProvider).valueOrNull;
+    final firstCam = dashboard?.groups.firstOrNull?.cameras.firstOrNull;
+    if (firstCam == null) {
+      throw Exception('Tidak ada kamera yang ditemukan di dashboard.');
+    }
+
+    final cameraId = int.tryParse(firstCam.id.toString()) ?? 0;
+    await deploy(cameraId, firmwareId: currentOtaState.availableUpdate!.id);
+  }
+
+  void resetStatus() {
+    final current = state.valueOrNull;
+    if (current != null) {
+      state = AsyncData(
+        current.copyWith(status: OTAStatus.idle, progress: 0.0),
+      );
+    }
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      final current = state.valueOrNull;
+      if (current == null) return;
+
+      final repo = ref.read(otaRepositoryProvider);
+      final historyResult = await repo.fetchDeployments();
+
+      if (historyResult is ApiSuccess<List<OTAHistoryEntry>>) {
+        final history = historyResult.data;
+        final latestDeployment = history.firstOrNull;
+        if (latestDeployment != null) {
+          final s = latestDeployment.status.toLowerCase();
+          OTAStatus status = OTAStatus.idle;
+          double progress = 0.0;
+          String? errorMessage;
+
+          if (s == 'success' || s == 'completed') {
+            status = OTAStatus.success;
+            progress = 1.0;
+            timer.cancel();
+          } else if (s == 'failed') {
+            status = OTAStatus.failed;
+            progress = 0.0;
+            errorMessage = 'Pembaruan gagal di perangkat.';
+            timer.cancel();
+          } else if (s == 'pending' || s == 'running' || s == 'downloading') {
+            status = OTAStatus.downloading;
+            progress = 0.5;
+          } else if (s == 'flashing') {
+            status = OTAStatus.flashing;
+            progress = 0.8;
+          }
+
+          state = AsyncData(
+            current.copyWith(
+              status: status,
+              progress: progress,
+              errorMessage: errorMessage,
+              history: history,
+              currentVersion: status == OTAStatus.success
+                  ? latestDeployment.version
+                  : current.currentVersion,
+              clearAvailableUpdate: status == OTAStatus.success,
             ),
-            ...state.history,
-          ];
-          state = state.copyWith(
-            currentVersion: nextVersion,
-            status: OTAStatus.success,
-            progress: 1.0,
-            clearAvailableUpdate: true,
-            history: updatedHistory,
           );
         } else {
-          state = state.copyWith(progress: currentProgress);
+          timer.cancel();
         }
+      } else {
+        // Keep polling even on failure
       }
     });
   }
 
-  void resetStatus() {
-    state = state.copyWith(status: OTAStatus.idle, progress: 0.0);
-  }
-
-  @override
-  void dispose() {
-    _simulationTimer?.cancel();
-    super.dispose();
+  void stopPolling() {
+    _pollingTimer?.cancel();
   }
 }
 
-final otaNotifierProvider = StateNotifierProvider<OTANotifier, OTAState>((ref) {
-  return OTANotifier();
-});
+final otaNotifierProvider =
+    AsyncNotifierProvider.autoDispose<OTANotifier, OTAState>(
+      OTANotifier.new,
+      name: 'otaNotifierProvider',
+    );

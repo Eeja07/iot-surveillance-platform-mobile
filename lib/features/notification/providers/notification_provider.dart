@@ -157,21 +157,11 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   }
 
   Future<NotificationState> _loadNotifications() async {
-    final token = await _getToken();
-    if (token == null || token.isEmpty) {
-      return const NotificationState();
-    }
-
     final repository = ref.read(notificationRepositoryProvider);
-    final list = await repository.fetchNotifications(token);
+    final list = await repository.fetchNotifications();
     final unread = list.where((item) => !item.isRead).length;
 
     return NotificationState(items: list, unreadCount: unread);
-  }
-
-  Future<String?> _getToken() async {
-    final sessionService = ref.read(sessionServiceProvider);
-    return sessionService.getAccessToken();
   }
 
   Future<void> refresh({bool isSilent = false}) async {
@@ -182,25 +172,31 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   }
 
   Future<bool> markAsRead(String id) async {
-    final token = await _getToken();
-    if (token == null || token.isEmpty) return false;
+    final current = state.valueOrNull;
+    if (current == null) return false;
+
+    // Keep backup for rollback
+    final previousState = current;
+
+    // Apply optimistic update immediately
+    final updatedItems = current.items.map((item) {
+      if (item.id == id) {
+        return item.copyWith(isRead: true);
+      }
+      return item;
+    }).toList();
+    final unread = updatedItems.where((item) => !item.isRead).length;
+
+    state = AsyncData(
+      current.copyWith(items: updatedItems, unreadCount: unread),
+    );
 
     final repository = ref.read(notificationRepositoryProvider);
-    final success = await repository.markAsRead(token, id);
-    if (success) {
-      final current = state.valueOrNull;
-      if (current != null) {
-        final updatedItems = current.items.map((item) {
-          if (item.id == id) {
-            return item.copyWith(isRead: true);
-          }
-          return item;
-        }).toList();
-        final unread = updatedItems.where((item) => !item.isRead).length;
-        state = AsyncData(
-          current.copyWith(items: updatedItems, unreadCount: unread),
-        );
-      }
+    final success = await repository.markAsRead(id);
+
+    if (!success) {
+      // Rollback on failure
+      state = AsyncData(previousState);
     }
     return success;
   }

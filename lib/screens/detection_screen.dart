@@ -21,11 +21,10 @@ class _DetectionScreenState extends ConsumerState<DetectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notificationAsync = ref.watch(notificationProvider);
-    final detectionState = ref.watch(detectionNotifierProvider);
+    final detectionAsync = ref.watch(detectionNotifierProvider);
     final detectionNotifier = ref.read(detectionNotifierProvider.notifier);
 
-    final cameras = detectionState.allDetections
+    final cameras = (detectionAsync.valueOrNull?.allDetections ?? [])
         .map((d) => {'id': d.cameraId, 'name': d.cameraName})
         .fold<List<Map<String, dynamic>>>([], (list, element) {
           if (!list.any((c) => c['id'] == element['id'])) {
@@ -61,16 +60,18 @@ class _DetectionScreenState extends ConsumerState<DetectionScreen> {
       body: Column(
         children: [
           DetectionFilterBar(
-            selectedCameraId: detectionState.filter.cameraId,
-            selectedDate: detectionState.filter.date,
-            showUnreadOnly: detectionState.filter.showUnreadOnly,
+            selectedCameraId: detectionAsync.valueOrNull?.filter.cameraId,
+            selectedDate: detectionAsync.valueOrNull?.filter.date,
+            showUnreadOnly:
+                detectionAsync.valueOrNull?.filter.showUnreadOnly ?? false,
             cameras: cameras,
             onUnreadToggle: (_) => detectionNotifier.toggleShowUnreadOnly(),
             onCameraChanged: (id) => detectionNotifier.setCameraId(id),
             onSelectDate: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: detectionState.filter.date ?? DateTime.now(),
+                initialDate:
+                    detectionAsync.valueOrNull?.filter.date ?? DateTime.now(),
                 firstDate: DateTime(2020),
                 lastDate: DateTime.now().add(const Duration(days: 1)),
               );
@@ -81,14 +82,14 @@ class _DetectionScreenState extends ConsumerState<DetectionScreen> {
             onClearDate: () => detectionNotifier.setDate(null),
           ),
           Expanded(
-            child: notificationAsync.when(
+            child: detectionAsync.when(
               loading: () => const DetectionLoading(),
               error: (err, _) => DetectionError(
                 error: err.toString(),
                 onRetry: () => detectionNotifier.refresh(),
               ),
-              data: (_) {
-                final list = detectionState.filteredDetections;
+              data: (state) {
+                final list = state.filteredDetections;
                 if (list.isEmpty) {
                   return DetectionEmpty(
                     onAction: () => detectionNotifier.resetFilters(),

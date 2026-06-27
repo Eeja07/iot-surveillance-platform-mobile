@@ -12,13 +12,13 @@ class FakeNotificationRepository implements NotificationRepository {
   bool markAsReadResult = true;
 
   @override
-  Future<List<CctvNotification>> fetchNotifications(String token) async {
+  Future<List<CctvNotification>> fetchNotifications() async {
     if (shouldThrow) throw Exception(errorMessage ?? 'Error');
     return notifications;
   }
 
   @override
-  Future<bool> markAsRead(String token, String id) async {
+  Future<bool> markAsRead(String id) async {
     if (shouldThrow) throw Exception(errorMessage ?? 'Error');
     return markAsReadResult;
   }

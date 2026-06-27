@@ -231,6 +231,24 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     );
   }
 
+  void _goToConfig() {
+    context.go(
+      AppRoutes.config,
+      extra: {
+        'camera': Camera(
+          id: widget.camera.id,
+          name: _currentCameraName,
+          groupName: widget.camera.groupName,
+          isOnline: widget.camera.isOnline,
+          description: widget.camera.description,
+          deviceId: widget.camera.deviceId,
+          groupId: widget.camera.groupId,
+          thumbnailUrl: widget.camera.thumbnailUrl,
+        ),
+      },
+    );
+  }
+
   void _applyFilter() {
     if (_selectedHour == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,9 +305,50 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
         ),
         actions: [
           PopupMenuButton<String>(
-            onSelected: (val) =>
-                val == 'edit' ? _editCamera() : _confirmDelete(),
+            onSelected: (val) {
+              if (val == 'edit') {
+                _editCamera();
+              } else if (val == 'delete') {
+                _confirmDelete();
+              } else if (val == 'ota') {
+                context.go(AppRoutes.ota);
+              } else if (val == 'detections') {
+                context.go(AppRoutes.detections);
+              } else if (val == 'config') {
+                _goToConfig();
+              }
+            },
             itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'detections',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility, color: Colors.teal),
+                    SizedBox(width: 8),
+                    Text('Deteksi Objek'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'ota',
+                child: Row(
+                  children: [
+                    Icon(Icons.system_update_alt, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Pembaruan OTA'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'config',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: Colors.blueGrey),
+                    SizedBox(width: 8),
+                    Text('Konfigurasi'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'edit',
                 child: Row(

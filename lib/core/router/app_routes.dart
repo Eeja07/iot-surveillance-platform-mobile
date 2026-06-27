@@ -12,4 +12,8 @@ class AppRoutes {
   static const String qrScanner = '/dashboard/qr-scanner';
   static const String addDeviceManual = '/dashboard/add-device-manual';
   static const String addGroup = '/dashboard/add-group';
+  static const String notifications = '/me/notifications';
+  static const String ota = '/dashboard/ota';
+  static const String detections = '/dashboard/detections';
+  static const String config = '/dashboard/camera-config';
 }

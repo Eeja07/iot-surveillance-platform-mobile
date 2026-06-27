@@ -126,9 +126,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
       if (!hasDirectionality) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: Builder(
-            builder: (ctx) => buildContent(ctx),
-          ),
+          home: Builder(builder: (ctx) => buildContent(ctx)),
         );
       }
 

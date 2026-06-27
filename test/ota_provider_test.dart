@@ -5,14 +5,106 @@ import 'package:MiotVision/features/ota/providers/ota_provider.dart';
 import 'package:MiotVision/core/observability/observability_service.dart';
 import 'package:MiotVision/core/observability/offline_indicator.dart';
 import 'package:MiotVision/core/network/dio_client.dart';
+import 'package:MiotVision/core/di/repository_providers.dart';
+import 'package:MiotVision/repositories/ota_repository.dart';
+import 'package:MiotVision/core/network/api_result.dart';
+import 'package:MiotVision/core/network/network_exception.dart';
+import 'package:MiotVision/features/dashboard/providers/dashboard_provider.dart';
+import 'package:MiotVision/models/camera_model.dart';
+
+class FakeOtaRepository implements OtaRepository {
+  FirmwareInfo? latestFirmware;
+  List<OTAHistoryEntry>? deployments;
+  bool shouldThrow = false;
+  Map<String, dynamic>? deployResult;
+
+  @override
+  Future<ApiResult<FirmwareInfo>> fetchLatestFirmware() async {
+    if (shouldThrow) {
+      return ApiFailure(UnknownException('Latest firmware error'));
+    }
+    return ApiSuccess(
+      latestFirmware ??
+          FirmwareInfo(
+            id: 1,
+            version: 'v1.3.0',
+            releaseNotes:
+                '• Memperbaiki stabilitas koneksi WebSocket.\n• Menambahkan optimasi latensi feed video.\n• Patch keamanan enkripsi data.',
+            releaseDate: DateTime.now().subtract(const Duration(days: 1)),
+            size: '14.2 MB',
+          ),
+    );
+  }
+
+  @override
+  Future<ApiResult<List<OTAHistoryEntry>>> fetchDeployments() async {
+    if (shouldThrow) {
+      return ApiFailure(UnknownException('Deployments error'));
+    }
+    return ApiSuccess(
+      deployments ??
+          [
+            OTAHistoryEntry(
+              version: 'v1.2.0',
+              date: DateTime.now().subtract(const Duration(days: 30)),
+              status: 'success',
+            ),
+            OTAHistoryEntry(
+              version: 'v1.1.5',
+              date: DateTime.now().subtract(const Duration(days: 60)),
+              status: 'success',
+            ),
+          ],
+    );
+  }
+
+  @override
+  Future<ApiResult<Map<String, dynamic>>> deployOta(
+    int cameraId, {
+    int? firmwareId,
+    String? notes,
+  }) async {
+    if (shouldThrow) {
+      return ApiFailure(UnknownException('Deploy failed'));
+    }
+    return ApiSuccess(
+      deployResult ??
+          {
+            'success': true,
+            'message': 'OTA deployment initiated successfully.',
+            'deployment_id': 123,
+          },
+    );
+  }
+}
+
+class FakeDashboardNotifier extends DashboardNotifier {
+  final DashboardState _state;
+  FakeDashboardNotifier(this._state);
+
+  @override
+  Future<DashboardState> build() async {
+    return _state;
+  }
+}
 
 void main() {
-  group('OTAProvider Tests', () {
-    test('Initial state is correct', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+  late FakeOtaRepository fakeOtaRepository;
 
-      final state = container.read(otaNotifierProvider);
+  setUp(() {
+    fakeOtaRepository = FakeOtaRepository();
+  });
+
+  group('OTAProvider Tests', () {
+    test('Initial state is correct', () async {
+      final container = ProviderContainer(
+        overrides: [otaRepositoryProvider.overrideWithValue(fakeOtaRepository)],
+      );
+      addTearDown(container.dispose);
+      final sub = container.listen(otaNotifierProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      final state = await container.read(otaNotifierProvider.future);
       expect(state.currentVersion, 'v1.2.0');
       expect(state.status, OTAStatus.idle);
       expect(state.availableUpdate, isNotNull);
@@ -22,43 +114,105 @@ void main() {
     });
 
     test('checkForUpdates updates state correctly', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [otaRepositoryProvider.overrideWithValue(fakeOtaRepository)],
+      );
       addTearDown(container.dispose);
+      final sub = container.listen(otaNotifierProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      // Force initial load
+      await container.read(otaNotifierProvider.future);
 
       final notifier = container.read(otaNotifierProvider.notifier);
-
       final future = notifier.checkForUpdates();
       expect(container.read(otaNotifierProvider).isLoading, isTrue);
 
       await future;
-      final state = container.read(otaNotifierProvider);
-      expect(state.isLoading, isFalse);
+      final state = container.read(otaNotifierProvider).value!;
       expect(state.availableUpdate, isNotNull);
       expect(state.availableUpdate!.version, 'v1.3.0');
     });
 
     test('startUpdate transitions through state machine correctly', () async {
-      final container = ProviderContainer();
+      fakeOtaRepository.deployments = [
+        OTAHistoryEntry(
+          version: 'v1.3.0',
+          date: DateTime.now(),
+          status: 'running',
+        ),
+        OTAHistoryEntry(
+          version: 'v1.2.0',
+          date: DateTime.now().subtract(const Duration(days: 30)),
+          status: 'success',
+        ),
+      ];
+
+      final container = ProviderContainer(
+        overrides: [
+          otaRepositoryProvider.overrideWithValue(fakeOtaRepository),
+          dashboardProvider.overrideWith(
+            () => FakeDashboardNotifier(
+              DashboardState(
+                groups: [
+                  CameraGroup(
+                    id: 1,
+                    name: 'Living Room',
+                    cameras: [
+                      Camera(
+                        id: 101,
+                        name: 'Camera 1',
+                        groupName: 'Living Room',
+                        isOnline: true,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
       addTearDown(container.dispose);
+      final sub = container.listen(otaNotifierProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await container.read(dashboardProvider.future);
+      await container.read(otaNotifierProvider.future);
 
       final notifier = container.read(otaNotifierProvider.notifier);
+      await notifier.startUpdate();
 
-      notifier.startUpdate();
-      expect(container.read(otaNotifierProvider).status, OTAStatus.downloading);
+      // Polling has started, status should be downloading (since latest is 'running')
+      expect(
+        container.read(otaNotifierProvider).value?.status,
+        OTAStatus.downloading,
+      );
 
-      // Wait for timer simulation to complete (about 20 steps for downloading and 13 steps for flashing)
-      // 33 steps * 150ms = ~5000ms max.
-      // We can check if it reaches success state.
-      await Future.delayed(const Duration(seconds: 6));
+      // Change repo deployments to return success on the next poll
+      fakeOtaRepository.deployments = [
+        OTAHistoryEntry(
+          version: 'v1.3.0',
+          date: DateTime.now(),
+          status: 'success',
+        ),
+        OTAHistoryEntry(
+          version: 'v1.2.0',
+          date: DateTime.now().subtract(const Duration(days: 30)),
+          status: 'success',
+        ),
+      ];
 
-      final state = container.read(otaNotifierProvider);
+      // Wait for poll (3 seconds interval)
+      await Future.delayed(const Duration(milliseconds: 3200));
+
+      final providerState = container.read(otaNotifierProvider);
+      final state = providerState.value!;
       expect(state.status, OTAStatus.success);
       expect(state.currentVersion, 'v1.3.0');
       expect(state.availableUpdate, isNull);
-      expect(state.progress, 1.0);
-      expect(state.history, hasLength(3));
-      expect(state.history.first.version, 'v1.3.0');
-      expect(state.history.first.status, 'success');
+
+      notifier.stopPolling();
     });
   });
 

@@ -4,6 +4,10 @@ import 'package:MiotVision/core/di/providers.dart';
 import 'package:MiotVision/core/di/repository_providers.dart';
 import 'package:MiotVision/features/dashboard/providers/dashboard_provider.dart';
 import 'package:MiotVision/models/camera_model.dart';
+import 'package:MiotVision/models/overview_model.dart';
+import 'package:MiotVision/repositories/overview_repository.dart';
+import 'package:MiotVision/core/network/api_result.dart';
+import 'package:MiotVision/core/network/network_exception.dart';
 import 'session_provider_test.dart'; // import FakeSessionService
 
 class FakeDashboardRepository implements DashboardRepository {
@@ -25,13 +29,40 @@ class FakeDashboardRepository implements DashboardRepository {
   }
 }
 
+class FakeOverviewRepository implements OverviewRepository {
+  OverviewModel? overview;
+  bool shouldThrow = false;
+
+  @override
+  Future<ApiResult<OverviewModel>> fetchOverview() async {
+    if (shouldThrow) {
+      return ApiFailure(UnknownException('Overview failed'));
+    }
+    return ApiSuccess(
+      overview ??
+          OverviewModel(
+            onlineCameras: 1,
+            totalCameras: 1,
+            detectionsToday: 5,
+            motionsToday: 10,
+            storageUsageGb: 2,
+            avgRssi: -60,
+            avgHeap: 120000,
+            uptimeAvg: 3600,
+          ),
+    );
+  }
+}
+
 void main() {
   late FakeSessionService fakeSessionService;
   late FakeDashboardRepository fakeRepository;
+  late FakeOverviewRepository fakeOverviewRepository;
 
   setUp(() {
     fakeSessionService = FakeSessionService();
     fakeRepository = FakeDashboardRepository();
+    fakeOverviewRepository = FakeOverviewRepository();
   });
 
   group('DashboardProvider Tests', () {
@@ -44,6 +75,9 @@ void main() {
           overrides: [
             sessionServiceProvider.overrideWithValue(fakeSessionService),
             dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+            overviewRepositoryProvider.overrideWithValue(
+              fakeOverviewRepository,
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -78,6 +112,7 @@ void main() {
         overrides: [
           sessionServiceProvider.overrideWithValue(fakeSessionService),
           dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+          overviewRepositoryProvider.overrideWithValue(fakeOverviewRepository),
         ],
       );
       addTearDown(container.dispose);
@@ -97,6 +132,7 @@ void main() {
         overrides: [
           sessionServiceProvider.overrideWithValue(fakeSessionService),
           dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+          overviewRepositoryProvider.overrideWithValue(fakeOverviewRepository),
         ],
       );
       addTearDown(container.dispose);
@@ -137,6 +173,7 @@ void main() {
         overrides: [
           sessionServiceProvider.overrideWithValue(fakeSessionService),
           dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+          overviewRepositoryProvider.overrideWithValue(fakeOverviewRepository),
         ],
       );
       addTearDown(container.dispose);
@@ -179,6 +216,7 @@ void main() {
         overrides: [
           sessionServiceProvider.overrideWithValue(fakeSessionService),
           dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+          overviewRepositoryProvider.overrideWithValue(fakeOverviewRepository),
         ],
       );
       addTearDown(container.dispose);
@@ -227,6 +265,7 @@ void main() {
         overrides: [
           sessionServiceProvider.overrideWithValue(fakeSessionService),
           dashboardRepositoryProvider.overrideWithValue(fakeRepository),
+          overviewRepositoryProvider.overrideWithValue(fakeOverviewRepository),
         ],
       );
       addTearDown(container.dispose);

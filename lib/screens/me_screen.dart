@@ -322,6 +322,14 @@ class _MeScreenState extends ConsumerState<MeScreen> {
                       const SizedBox(height: 10),
 
                       ListTile(
+                        leading: const Icon(Icons.notifications_outlined),
+                        title: const Text('Notifikasi'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          context.go(AppRoutes.notifications);
+                        },
+                      ),
+                      ListTile(
                         leading: const Icon(Icons.help_outline),
                         title: const Text('Bantuan & Panduan'),
                         trailing: const Icon(Icons.chevron_right),

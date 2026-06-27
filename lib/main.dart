@@ -12,6 +12,8 @@ import 'core/observability/error_boundary.dart';
 import 'core/observability/lifecycle_observer.dart';
 import 'core/observability/offline_indicator.dart';
 
+import 'core/realtime/notification_bridge.dart';
+
 class AppProviderObserver extends ProviderObserver {
   @override
   void didUpdateProvider(
@@ -58,14 +60,14 @@ void main() async {
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
   Timer? _tokenCheckTimer;
@@ -147,6 +149,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(notificationBridgeProvider);
     return LifecycleObserver(
       onResumed: () {
         ObservabilityService.instance.info('App resumed, syncing systems');
@@ -160,9 +163,7 @@ class _MyAppState extends State<MyApp> {
         themeMode: _themeMode,
         builder: (context, child) {
           return ErrorBoundary(
-            child: OfflineIndicator(
-              child: child ?? const SizedBox.shrink(),
-            ),
+            child: OfflineIndicator(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

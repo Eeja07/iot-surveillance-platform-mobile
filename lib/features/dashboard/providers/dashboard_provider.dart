@@ -22,8 +22,10 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/camera_model.dart';
+import '../../../models/overview_model.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/di/repository_providers.dart';
+import '../../../core/network/api_result.dart';
 
 // ---------------------------------------------------------------------------
 // DashboardState — immutable value object
@@ -41,11 +43,13 @@ class DashboardState {
   final List<CameraGroup> groups;
   final Map<int, String> thumbnailCache;
   final String searchQuery;
+  final OverviewModel? overview;
 
   const DashboardState({
     this.groups = const [],
     this.thumbnailCache = const {},
     this.searchQuery = '',
+    this.overview,
   });
 
   /// Returns groups filtered by [searchQuery].
@@ -81,23 +85,29 @@ class DashboardState {
   }
 
   /// Total number of cameras across all groups.
-  int get totalCameras => groups.fold(0, (sum, g) => sum + g.cameras.length);
+  int get totalCameras =>
+      overview?.totalCameras ??
+      groups.fold(0, (sum, g) => sum + g.cameras.length);
 
   /// Total number of online cameras across all groups.
-  int get onlineCameras => groups.fold(
-    0,
-    (sum, g) => sum + g.cameras.where((c) => c.isOnline).length,
-  );
+  int get onlineCameras =>
+      overview?.onlineCameras ??
+      groups.fold(
+        0,
+        (sum, g) => sum + g.cameras.where((c) => c.isOnline).length,
+      );
 
   DashboardState copyWith({
     List<CameraGroup>? groups,
     Map<int, String>? thumbnailCache,
     String? searchQuery,
+    OverviewModel? overview,
   }) {
     return DashboardState(
       groups: groups ?? this.groups,
       thumbnailCache: thumbnailCache ?? this.thumbnailCache,
       searchQuery: searchQuery ?? this.searchQuery,
+      overview: overview ?? this.overview,
     );
   }
 
@@ -199,7 +209,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
   // --------------------------------------------------------------------------
 
   /// Fetches camera groups via [DashboardRepository], applies thumbnail cache,
-  /// filters empty groups, and returns a [DashboardState].
+  /// filters empty groups, fetches overview statistics, and returns a [DashboardState].
   Future<DashboardState> _loadGroups() async {
     final sessionService = ref.read(sessionServiceProvider);
     final token = await sessionService.getAccessToken();
@@ -210,8 +220,17 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
       return const DashboardState();
     }
 
+    // Fetch camera groups
     final repository = ref.read(dashboardRepositoryProvider);
     final groups = await repository.fetchCameraGroups(token);
+
+    // Fetch overview statistics
+    final overviewRepo = ref.read(overviewRepositoryProvider);
+    final overviewResult = await overviewRepo.fetchOverview();
+    OverviewModel? overview;
+    if (overviewResult is ApiSuccess<OverviewModel>) {
+      overview = overviewResult.data;
+    }
 
     // Preserve expansion state from previous load if state already has data
     final prevGroups = state.valueOrNull?.groups ?? [];
@@ -254,6 +273,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
       groups: processedGroups,
       thumbnailCache: cache,
       searchQuery: currentQuery,
+      overview: overview,
     );
   }
 }
