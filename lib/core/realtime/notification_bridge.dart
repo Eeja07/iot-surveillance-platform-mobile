@@ -49,10 +49,22 @@ class NotificationBridge {
 
     if (newItems.isEmpty) return;
 
-    // TODO(phase-21.7-verify): foreground guard temporarily disabled so
-    // notification delivery can be confirmed end-to-end.
-    // Re-enable after verifying [NOTIF] sending appears in logs.
-    debugPrint('[NOTIF] lifecycle=${_ref.read(appLifecycleProvider)}');
+    // Foreground guard: only fire Android notifications when the app is NOT
+    // in the foreground. When the app is open, provider invalidation already
+    // refreshes the UI — no notification needed.
+    final lifecycle = _ref.read(appLifecycleProvider);
+    final isForeground = lifecycle == AppLifecycleState.resumed;
+
+    debugPrint('[NOTIF] lifecycle=$lifecycle');
+
+    if (isForeground) {
+      debugPrint('[NOTIF] foreground skip (${newItems.length} item(s))');
+      ObservabilityService.instance.info(
+        '[NOTIF] App in foreground — skipping Android notification '
+        '(${newItems.length} new item(s))',
+      );
+      return;
+    }
 
     final localNotificationService = _ref.read(localNotificationServiceProvider);
 
