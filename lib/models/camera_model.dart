@@ -18,12 +18,13 @@ class Camera {
         json['latest_image_url'];
 
     if (thumb == null) {
-       final path = json['latest_image_path'];
-       if (path != null &&
-           path.toString().isNotEmpty) {
-          thumb =
-          '$_imageBaseUrl/storage/$path';
-       }
+      final path = json['latest_image_path'];
+      if (path != null && path.toString().isNotEmpty) {
+        final cleanPath = path.toString().startsWith('/')
+            ? path.toString().substring(1)
+            : path.toString();
+        thumb = 'https://apiminio.miot-its.org/cctv/$cleanPath';
+      }
     }
 
     if (thumb != null && thumb.isNotEmpty && !thumb.startsWith('http')) {
@@ -33,13 +34,7 @@ class Camera {
     return Camera(
       id: json['id'],
       name: json['name'] ?? 'Kamera Tanpa Nama',
-      isOnline: (json['mqtt_status']
-             ?.toString()
-             .toLowerCase())
-         ==
-         'online'
-         ||
-         json['online'] == true,
+      isOnline: json['is_active'] == true,
       groupName:
           (json['group_name'] != null &&
               json['group_name'].toString().isNotEmpty)
