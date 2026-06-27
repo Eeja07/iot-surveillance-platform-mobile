@@ -224,3 +224,5 @@ final detectionNotifierProvider =
       DetectionNotifier.new,
       name: 'detectionNotifierProvider',
     );
+
+final detectionProvider = detectionNotifierProvider;

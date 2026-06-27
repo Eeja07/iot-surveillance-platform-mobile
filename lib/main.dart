@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'services/auth_service.dart';
+import 'core/network/api_result.dart';
 
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
@@ -13,6 +13,8 @@ import 'core/observability/lifecycle_observer.dart';
 import 'core/observability/offline_indicator.dart';
 
 import 'core/realtime/notification_bridge.dart';
+import 'core/realtime/reverb_provider.dart';
+import 'core/di/auth_provider.dart';
 
 class AppProviderObserver extends ProviderObserver {
   @override
@@ -71,7 +73,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
   Timer? _tokenCheckTimer;
-  final AuthService _authService = AuthService();
   bool _isCheckingToken = false;
 
   @override
@@ -126,18 +127,18 @@ class _MyAppState extends ConsumerState<MyApp> {
     _isCheckingToken = true;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final sessionService = AppLocator.instance.sessionService;
+      final authRepository = AppLocator.instance.authRepository;
 
-      if (token == null || token.isEmpty) {
+      final hasSession = await sessionService.isLoggedIn();
+      if (!hasSession) {
         _isCheckingToken = false;
         return;
       }
 
-      bool isValid = await _authService.checkTokenValidity(token);
-
-      if (!isValid) {
-        await prefs.clear();
+      final result = await authRepository.me();
+      if (result is ApiFailure) {
+        await sessionService.clearSession();
         AppRouter.router.go('/login');
       }
     } catch (e) {
@@ -149,7 +150,29 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(notificationBridgeProvider);
+    final authState = ref.watch(authProvider);
+
+    if (authState.isAuthenticated) {
+      ref.watch(notificationBridgeProvider);
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(reverbServiceProvider).init();
+      });
+    }
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final reverb = ref.read(reverbServiceProvider);
+      if (next.isAuthenticated) {
+        ObservabilityService.instance.info('[AUTH] authenticated=true');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          reverb.init();
+        });
+      } else {
+        ObservabilityService.instance.info('[AUTH] authenticated=false');
+        reverb.disconnect();
+      }
+    });
+
     return LifecycleObserver(
       onResumed: () {
         ObservabilityService.instance.info('App resumed, syncing systems');

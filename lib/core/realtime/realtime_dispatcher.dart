@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'reverb_service.dart';
 import '../observability/observability_service.dart';
 import 'dashboard_sync.dart';
 

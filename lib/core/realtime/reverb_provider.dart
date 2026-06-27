@@ -4,7 +4,6 @@ import 'reverb_service.dart';
 
 final reverbServiceProvider = Provider<ReverbService>((ref) {
   final service = ReverbService(ref);
-  service.init();
 
   ref.listen<bool>(connectivityProvider, (previous, next) {
     service.handleConnectivityChanged(next);

@@ -57,6 +57,13 @@ class FakeAuthController extends ChangeNotifier implements AuthController {
     return logoutResult;
   }
 
+  @override
+  void clearLocalSession() {
+    _currentUser = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   bool clearErrorCalled = false;
 
   @override

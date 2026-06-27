@@ -63,23 +63,21 @@ class AuthController extends ChangeNotifier {
     return false;
   }
 
+  void clearLocalSession() {
+    _currentUser = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<bool> logout() async {
     _isLoading = true;
     notifyListeners();
 
-    final result = await _authRepository.logout();
+    await _authRepository.logout();
     _isLoading = false;
 
-    if (result is ApiSuccess) {
-      _currentUser = null;
-      notifyListeners();
-      return true;
-    } else if (result is ApiFailure) {
-      _errorMessage = result.exception.message;
-      notifyListeners();
-      return false;
-    }
-    return false;
+    clearLocalSession();
+    return true;
   }
 
   Future<void> clearError() async {

@@ -304,3 +304,6 @@ final dashboardProvider =
       DashboardNotifier.new,
       name: 'dashboardProvider',
     );
+
+final overviewProvider = dashboardProvider;
+final cameraProvider = dashboardProvider;

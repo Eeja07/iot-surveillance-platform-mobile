@@ -30,7 +30,7 @@ class AppConfig {
     receiveTimeoutMs: 15000,
     reverbHost: 'cctv.miot-its.org',
     reverbPort: 443,
-    reverbAppKey: 'miotvisionkey',
+    reverbAppKey: 'j42ddfft9pcvefpkb2jl',
     reverbScheme: 'https',
     minioBaseUrl: 'https://cctv.miot-its.org',
   );
@@ -42,7 +42,7 @@ class AppConfig {
     receiveTimeoutMs: 20000,
     reverbHost: 'cctv.miot-its.org',
     reverbPort: 443,
-    reverbAppKey: 'miotvisionkey',
+    reverbAppKey: 'j42ddfft9pcvefpkb2jl',
     reverbScheme: 'https',
     minioBaseUrl: 'https://cctv.miot-its.org',
   );

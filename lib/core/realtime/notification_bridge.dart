@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/notification/providers/notification_provider.dart';
 import '../notifications/notification_provider.dart';
@@ -54,7 +55,10 @@ class NotificationBridge {
 
 final notificationBridgeProvider = Provider<NotificationBridge>((ref) {
   final bridge = NotificationBridge(ref);
-  bridge.init();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    bridge.init();
+  });
 
   ref.listen<AsyncValue<NotificationState>>(notificationProvider, (
     previous,

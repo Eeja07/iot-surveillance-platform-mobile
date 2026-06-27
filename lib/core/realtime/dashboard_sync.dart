@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import '../../features/dashboard/providers/dashboard_provider.dart';
 import '../../features/detection/providers/detection_provider.dart';
 import '../../features/notification/providers/notification_provider.dart';
 import '../../features/camera/providers/camera_config_provider.dart';
 import '../../features/ota/providers/ota_provider.dart';
 import '../observability/observability_service.dart';
+import '../notifications/notification_provider.dart';
+import 'last_detection_provider.dart';
+import 'reverb_service.dart';
 
 class DashboardSync {
   final Ref _ref;
@@ -23,9 +26,29 @@ class DashboardSync {
 
     switch (event.eventName) {
       case 'person.detected':
-        _queueInvalidation(detectionNotifierProvider);
-        _queueInvalidation(notificationProvider);
-        _queueInvalidation(dashboardProvider);
+        // 1. Invalidate data providers
+        _ref.invalidate(detectionProvider);
+        _ref.invalidate(notificationProvider);
+        _ref.invalidate(overviewProvider);
+        _ref.invalidate(cameraProvider);
+
+        // 2. Fire native local notification (push) — this is background-safe.
+        try {
+          final Map<String, dynamic> payload = event.data is String
+              ? json.decode(event.data as String) as Map<String, dynamic>
+              : Map<String, dynamic>.from(event.data as Map);
+
+          _showNativeNotification(payload);
+
+          // 3. Publish payload to UI layer via provider so HomeScreen can show toast.
+          _ref.read(lastDetectionEventProvider.notifier).state = payload;
+        } catch (e, stack) {
+          ObservabilityService.instance.reportError(
+            e,
+            stack,
+            hint: 'Failed parsing person.detected event data',
+          );
+        }
         break;
 
       case 'image.received':
@@ -36,7 +59,7 @@ class DashboardSync {
         break;
 
       case 'config.updated':
-        int? cameraId = _parseCameraId(event.data);
+        final cameraId = _parseCameraId(event.data);
         if (cameraId != null) {
           _queueCameraConfigInvalidation(cameraId);
         } else {
@@ -48,6 +71,35 @@ class DashboardSync {
         _queueInvalidation(otaNotifierProvider);
         _queueInvalidation(dashboardProvider);
         break;
+    }
+  }
+
+  /// Fires a native system push notification.
+  ///
+  /// This does NOT touch any Flutter widget tree or Overlay — it is safe to
+  /// call from background isolates / websocket event handlers.
+  void _showNativeNotification(Map<String, dynamic> data) {
+    try {
+      final id = int.tryParse(data['id']?.toString() ?? '') ?? data.hashCode;
+      final cameraName = data['camera_name']?.toString() ?? 'Kamera';
+      final confidence = data['confidence']?.toString() ?? '';
+
+      const title = 'Human Detected';
+      final body =
+          'Person detected on $cameraName${confidence.isNotEmpty ? ' ($confidence)' : ''}';
+
+      _ref.read(localNotificationServiceProvider).showNotification(
+        id: id,
+        title: title,
+        body: body,
+        payload: data['id']?.toString(),
+      );
+    } catch (e, stack) {
+      ObservabilityService.instance.reportError(
+        e,
+        stack,
+        hint: 'Native notification failed',
+      );
     }
   }
 

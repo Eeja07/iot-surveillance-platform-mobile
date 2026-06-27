@@ -1,18 +1,35 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
-import '../../features/detection/providers/detection_provider.dart';
-import '../../features/notification/providers/notification_provider.dart';
+import '../di/injection.dart';
+import '../di/auth_provider.dart';
 import '../observability/offline_indicator.dart';
 import '../observability/observability_service.dart';
 import 'connection_monitor.dart';
 import 'connection_provider.dart';
 import 'realtime_dispatcher.dart';
 
+class PusherEvent {
+  final String? channelName;
+  final String eventName;
+  final dynamic data;
+
+  const PusherEvent({
+    this.channelName,
+    required this.eventName,
+    required this.data,
+  });
+
+  @override
+  String toString() => 'PusherEvent(channel: $channelName, event: $eventName, data: $data)';
+}
+
 class ReverbService {
   final Ref _ref;
-  final PusherChannelsFlutter _pusher = PusherChannelsFlutter.getInstance();
+  WebSocket? _socket;
   bool _initialized = false;
+  bool _connecting = false;
 
   // Reconnect state
   int _reconnectDelayIndex = 0;
@@ -25,38 +42,39 @@ class ReverbService {
   ];
   bool _isReconnecting = false;
   Timer? _reconnectTimer;
+  Timer? _pingTimer;
 
   // Active channel list to resubscribe on reconnect
   final Set<String> _cameraChannels = {};
 
   ReverbService(this._ref);
 
+  void _updateConnectionStatus(ConnectionStatus status) {
+    Future.microtask(() {
+      _ref.read(connectionStatusProvider.notifier).state = status;
+    });
+  }
+
   Future<void> init() async {
-    if (_initialized) return;
-
-    try {
-      await _pusher.init(
-        apiKey: 'j42ddfft9pcvefpkb2jl',
-        cluster: 'mt1',
-        useTLS: true,
-        onConnectionStateChange: _onConnectionStateChange,
-        onError: _onError,
-        onEvent: _onEvent,
-        onSubscriptionSucceeded: _onSubscriptionSucceeded,
-        onSubscriptionError: _onSubscriptionError,
-      );
-
-      _initialized = true;
-
-      // Start connections
-      await connect();
-    } catch (e) {
-      ObservabilityService.instance.reportError(
-        e,
-        StackTrace.current,
-        hint: 'ReverbService init failed',
-      );
+    final isAuthenticated = _ref.read(authProvider).isAuthenticated;
+    if (!isAuthenticated) {
+      ObservabilityService.instance.info("[REVERB] init blocked");
+      return;
     }
+    ObservabilityService.instance.info("[REVERB] init allowed");
+    ObservabilityService.instance.info("[REVERB] init");
+    
+    if (_initialized) return;
+    _initialized = true;
+    await connect();
+  }
+
+  Future<void> disconnect() async {
+    ObservabilityService.instance.info("[REVERB] disconnect");
+    _initialized = false;
+    _connecting = false;
+    _closeSocket();
+    _updateConnectionStatus(ConnectionStatus.offline);
   }
 
   void handleConnectivityChanged(bool isOnline) {
@@ -66,144 +84,186 @@ class ReverbService {
     if (isOnline) {
       connect();
     } else {
-      _ref.read(connectionStatusProvider.notifier).state =
-          ConnectionStatus.offline;
+      _closeSocket();
+      _updateConnectionStatus(ConnectionStatus.offline);
     }
   }
 
   Future<void> connect() async {
-    final isOnline = _ref.read(connectivityProvider);
-    if (!isOnline) {
-      _ref.read(connectionStatusProvider.notifier).state =
-          ConnectionStatus.offline;
+    final isAuthenticated = _ref.read(authProvider).isAuthenticated;
+    if (!isAuthenticated) {
       return;
     }
 
-    try {
-      final state = _pusher.connectionState;
-      if (state == 'DISCONNECTED' || state == 'disconnecting') {
-        _ref.read(connectionStatusProvider.notifier).state =
-            ConnectionStatus.connecting;
-        ObservabilityService.instance.info('[REVERB] Connecting websocket...');
-        await _pusher.connect();
-      }
-    } catch (e) {
-      _triggerReconnect();
+    ObservabilityService.instance.info("[REVERB] connect");
+    final isOnline = _ref.read(connectivityProvider);
+    if (!isOnline) {
+      _updateConnectionStatus(ConnectionStatus.offline);
+      return;
     }
-  }
 
-  Future<void> pause() async {
-    ObservabilityService.instance.info(
-      '[REVERB] App paused, disconnecting websocket...',
-    );
-    try {
-      await _pusher.disconnect();
-    } catch (_) {}
-  }
-
-  Future<void> forceReconnect() async {
-    ObservabilityService.instance.info(
-      '[REVERB] Stale connection detected. Forcing reconnect...',
-    );
-    try {
-      await _pusher.disconnect();
-    } catch (_) {}
-    await connect();
-  }
-
-  Future<void> subscribeToCameraChannel(String channelId) async {
-    _cameraChannels.add(channelId);
-    if (_pusher.connectionState == 'CONNECTED') {
-      try {
-        await _pusher.subscribe(channelName: channelId);
-      } catch (_) {}
+    if (_socket != null && _socket!.readyState == WebSocket.open) {
+      return;
     }
-  }
 
-  Future<void> unsubscribeFromCameraChannel(String channelId) async {
-    _cameraChannels.remove(channelId);
+    if (_connecting) return;
+    _connecting = true;
+
+    _updateConnectionStatus(ConnectionStatus.connecting);
+
+    final config = AppLocator.instance.config;
+    final host = config.reverbHost;
+    final port = config.reverbPort;
+    final scheme = config.reverbScheme == 'https' ? 'wss' : 'ws';
+    final appKey = config.reverbAppKey;
+
+    final portPart = (port == 80 || port == 443) ? "" : ":$port";
+    final url = '$scheme://$host$portPart/app/$appKey?protocol=7&client=js&version=7.0.6&flash=false';
+
+    ObservabilityService.instance.info('[REVERB] Connecting websocket to: $url');
+
     try {
-      await _pusher.unsubscribe(channelName: channelId);
-    } catch (_) {}
-  }
-
-  void _onConnectionStateChange(String currentState, String previousState) {
-    ObservabilityService.instance.info(
-      '[REVERB] Connection state: $previousState -> $currentState',
-    );
-
-    // Map status
-    final status = _mapState(currentState);
-    _ref.read(connectionStatusProvider.notifier).state = status;
-
-    // Reset backoff on success
-    if (currentState == 'CONNECTED') {
+      _socket = await WebSocket.connect(url).timeout(const Duration(seconds: 5));
+      _connecting = false;
+      _isReconnecting = false;
       _reconnectDelayIndex = 0;
-      _subscribeChannels();
-    }
 
-    if (currentState == 'DISCONNECTED') {
-      _triggerReconnect();
-    }
+      _startPingTimer();
 
-    // Record activity for heartbeat
-    _ref.read(connectionMonitorProvider).recordActivity();
-  }
-
-  ConnectionStatus _mapState(String state) {
-    switch (state) {
-      case 'CONNECTED':
-        return ConnectionStatus.connected;
-      case 'CONNECTING':
-        return ConnectionStatus.connecting;
-      case 'RECONNECTING':
-        return ConnectionStatus.reconnecting;
-      default:
-        final isOnline = _ref.read(connectivityProvider);
-        return isOnline
-            ? ConnectionStatus.connecting
-            : ConnectionStatus.offline;
-    }
-  }
-
-  Future<void> _subscribeChannels() async {
-    try {
-      ObservabilityService.instance.info(
-        '[REVERB] Subscribing to detections channel...',
+      _socket!.listen(
+        (message) {
+          _onMessageReceived(message as String);
+        },
+        onError: (err) {
+          ObservabilityService.instance.info('[REVERB] Socket error: $err');
+          _handleDisconnect();
+        },
+        onDone: () {
+          ObservabilityService.instance.info('[REVERB] Socket done (closed)');
+          _handleDisconnect();
+        },
+        cancelOnError: true,
       );
-      await _pusher.subscribe(channelName: 'detections');
-      for (final channelId in _cameraChannels) {
-        await _pusher.subscribe(channelName: channelId);
-      }
-    } catch (_) {}
+    } catch (e, stack) {
+      _connecting = false;
+      ObservabilityService.instance.reportError(
+        e,
+        stack,
+        hint: 'Reverb connection failed',
+      );
+      _handleDisconnect();
+    }
   }
 
-  void _onError(String message, int? code, dynamic error) {
-    ObservabilityService.instance.info(
-      '[REVERB] Connection error: $message (code: $code)',
-    );
-  }
-
-  void _onSubscriptionSucceeded(String channelName, dynamic data) {
-    ObservabilityService.instance.info(
-      '[REVERB] Subscription succeeded: $channelName',
-    );
-  }
-
-  void _onSubscriptionError(String message, dynamic error) {
-    ObservabilityService.instance.info('[REVERB] Subscription error: $message');
-  }
-
-  void _onEvent(PusherEvent event) {
+  void _onMessageReceived(String message) {
     _ref.read(connectionMonitorProvider).recordActivity();
-    _ref.read(realtimeDispatcherProvider).dispatch(event);
+
+    try {
+      final decoded = json.decode(message) as Map<String, dynamic>;
+      final eventName = decoded['event'] as String?;
+      final channel = decoded['channel'] as String?;
+      final rawData = decoded['data'];
+
+      if (eventName == null) return;
+
+      if (eventName == 'pusher:connection_established') {
+        _updateConnectionStatus(ConnectionStatus.connected);
+        print("[REVERB] connected");
+        ObservabilityService.instance.info("[REVERB] connected");
+        ObservabilityService.instance.info('[REVERB] Connection state: CONNECTED');
+
+        // Resubscribe to channels
+        _subscribe('detections');
+        for (final cameraChannel in _cameraChannels) {
+          _subscribe(cameraChannel);
+        }
+      } else if (eventName == 'pusher_internal:subscription_succeeded') {
+        if (channel == 'detections') {
+          print("[REVERB] subscribed detections");
+          ObservabilityService.instance.info("[REVERB] subscribed detections");
+        }
+        ObservabilityService.instance.info('[REVERB] Subscription succeeded: $channel');
+      } else if (eventName == 'pusher:ping') {
+        _send({'event': 'pusher:pong', 'data': {}});
+      } else if (eventName == 'pusher:error') {
+        ObservabilityService.instance.info('[REVERB] Reverb error event: $rawData');
+      } else {
+        // App events
+        final event = PusherEvent(
+          channelName: channel,
+          eventName: eventName,
+          data: rawData,
+        );
+
+        if (eventName == 'person.detected') {
+          print(event.eventName);
+          print(event.data);
+          ObservabilityService.instance.info("[REVERB] person.detected received");
+        }
+
+        _ref.read(realtimeDispatcherProvider).dispatch(event);
+      }
+    } catch (e, stack) {
+      ObservabilityService.instance.reportError(e, stack, hint: 'Failed parsing websocket frame');
+    }
+  }
+
+  void _send(Map<String, dynamic> payload) {
+    if (_socket != null && _socket!.readyState == WebSocket.open) {
+      _socket!.add(json.encode(payload));
+    }
+  }
+
+  void _subscribe(String channelName) {
+    _send({
+      'event': 'pusher:subscribe',
+      'data': {
+        'channel': channelName,
+      }
+    });
+  }
+
+  void _unsubscribe(String channelName) {
+    _send({
+      'event': 'pusher:unsubscribe',
+      'data': {
+        'channel': channelName,
+      }
+    });
+  }
+
+  void _handleDisconnect() {
+    _closeSocket();
+    
+    final isOnline = _ref.read(connectivityProvider);
+    if (!isOnline) {
+      _updateConnectionStatus(ConnectionStatus.offline);
+      return;
+    }
+
+    _triggerReconnect();
+  }
+
+  void _closeSocket() {
+    _pingTimer?.cancel();
+    _pingTimer = null;
+    try {
+      _socket?.close();
+    } catch (_) {}
+    _socket = null;
+  }
+
+  void _startPingTimer() {
+    _pingTimer?.cancel();
+    _pingTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      _send({'event': 'pusher:ping', 'data': {}});
+    });
   }
 
   void _triggerReconnect() {
     final isOnline = _ref.read(connectivityProvider);
     if (!isOnline) {
-      _ref.read(connectionStatusProvider.notifier).state =
-          ConnectionStatus.offline;
+      _updateConnectionStatus(ConnectionStatus.offline);
       return;
     }
 
@@ -214,19 +274,16 @@ class ReverbService {
     ObservabilityService.instance.info(
       '[REVERB] Reconnect scheduled in ${delay.inSeconds}s (backoff index: $_reconnectDelayIndex)',
     );
-    _ref.read(connectionStatusProvider.notifier).state =
-        ConnectionStatus.reconnecting;
+    _updateConnectionStatus(ConnectionStatus.reconnecting);
 
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () async {
       try {
-        final state = _pusher.connectionState;
-        if (state == 'DISCONNECTED') {
-          await _pusher.connect();
-        }
-      } catch (_) {
-      } finally {
         _isReconnecting = false;
+        await connect();
+      } catch (_) {
+        _isReconnecting = false;
+      } finally {
         if (_reconnectDelayIndex < _backoffDelays.length - 1) {
           _reconnectDelayIndex++;
         }
@@ -234,14 +291,42 @@ class ReverbService {
     });
   }
 
+  Future<void> pause() async {
+    ObservabilityService.instance.info(
+      '[REVERB] App paused, disconnecting websocket...',
+    );
+    _closeSocket();
+    _updateConnectionStatus(ConnectionStatus.offline);
+  }
+
+  Future<void> forceReconnect() async {
+    ObservabilityService.instance.info(
+      '[REVERB] Stale connection detected. Forcing reconnect...',
+    );
+    _closeSocket();
+    await connect();
+  }
+
+  Future<void> subscribeToCameraChannel(String channelId) async {
+    _cameraChannels.add(channelId);
+    if (_socket != null && _socket!.readyState == WebSocket.open) {
+      try {
+        _subscribe(channelId);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> unsubscribeFromCameraChannel(String channelId) async {
+    _cameraChannels.remove(channelId);
+    if (_socket != null && _socket!.readyState == WebSocket.open) {
+      try {
+        _unsubscribe(channelId);
+      } catch (_) {}
+    }
+  }
+
   void dispose() {
     _reconnectTimer?.cancel();
-    try {
-      _pusher.unsubscribe(channelName: 'detections');
-      for (final channelId in _cameraChannels) {
-        _pusher.unsubscribe(channelName: channelId);
-      }
-      _pusher.disconnect();
-    } catch (_) {}
+    _closeSocket();
   }
 }

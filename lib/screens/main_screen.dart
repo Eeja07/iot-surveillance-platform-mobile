@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/observability/observability_service.dart';
+import '../core/realtime/last_detection_provider.dart';
 import '../core/router/app_routes.dart';
+import '../utils/toast_utils.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
   final Widget child;
@@ -15,10 +19,14 @@ class MainScreen extends StatefulWidget {
   });
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
+  // Dedup: cache the last detection id shown as a toast so we never show the
+  // same event twice (e.g. on rebuild or rapid re-subscription).
+  int? _lastShownDetectionId;
+
   int get _selectedIndex {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith(AppRoutes.me)) {
@@ -93,6 +101,34 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for new detection events and show an in-app toast safely.
+    ref.listen<Map<String, dynamic>?>(lastDetectionEventProvider, (_, payload) {
+      if (payload == null) return;
+
+      // Parse the detection id for dedup.
+      final id = int.tryParse(payload['id']?.toString() ?? '') ?? payload.hashCode;
+
+      // Skip if we already showed a toast for this exact detection event.
+      if (_lastShownDetectionId == id) return;
+      _lastShownDetectionId = id;
+
+      final cameraName = payload['camera_name']?.toString() ?? 'Kamera';
+      final confidence = payload['confidence']?.toString() ?? '';
+      final message =
+          'Person detected on $cameraName${confidence.isNotEmpty ? ' ($confidence)' : ''}';
+
+      // Defer until after the current frame so the Overlay is guaranteed to
+      // exist and the widget is fully mounted.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final overlay = Overlay.maybeOf(context);
+        if (overlay == null) return;
+
+        ObservabilityService.instance.info('[UI] toast shown');
+        ToastUtils.show(context, '[Human Detected] $message', isError: false);
+      });
+    });
+
     final bool isKeyboardVisible =
         MediaQuery.of(context).viewInsets.bottom != 0;
 

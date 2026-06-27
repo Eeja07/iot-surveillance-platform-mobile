@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../features/auth/data/datasource/auth_local_data_source.dart';
 import '../../features/auth/domain/model/user_model.dart';
+import '../di/injection.dart';
 import 'session_event.dart';
 
 class SessionService {
@@ -54,11 +55,13 @@ class SessionService {
 
   Future<void> clearSession() async {
     await _localDataSource.clearSession();
+    AppLocator.instance.authController.clearLocalSession();
     _eventController.add(SessionEvent.loggedOut);
   }
 
   Future<void> expireSession() async {
     await _localDataSource.clearSession();
+    AppLocator.instance.authController.clearLocalSession();
     _eventController.add(SessionEvent.sessionExpired);
   }
 
