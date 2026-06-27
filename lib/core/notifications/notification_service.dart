@@ -36,7 +36,7 @@ class LocalNotificationService {
     await androidPlugin?.requestNotificationsPermission();
 
     await _localNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         AppRouter.router.go(AppRoutes.detections);
       },
@@ -52,10 +52,10 @@ class LocalNotificationService {
     String? payload,
   }) async {
     await _localNotificationsPlugin.show(
-      id,
-      title,
-      body,
-      const NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'detections_channel',
           'Camera Detections',

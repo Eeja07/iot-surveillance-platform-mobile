@@ -38,9 +38,6 @@ class ReverbService {
       await _pusher.init(
         apiKey: 'j42ddfft9pcvefpkb2jl',
         cluster: 'mt1',
-        host: 'cctv.miot-its.org',
-        wsPort: 443,
-        wssPort: 443,
         useTLS: true,
         onConnectionStateChange: _onConnectionStateChange,
         onError: _onError,
@@ -53,25 +50,24 @@ class ReverbService {
 
       // Start connections
       await connect();
-
-      // Listen to connectivity changes (offline/online)
-      _ref.listen<bool>(connectivityProvider, (previous, isOnline) {
-        ObservabilityService.instance.info(
-          '[REVERB] Connectivity changed. Online: $isOnline',
-        );
-        if (isOnline) {
-          connect();
-        } else {
-          _ref.read(connectionStatusProvider.notifier).state =
-              ConnectionStatus.offline;
-        }
-      });
     } catch (e) {
       ObservabilityService.instance.reportError(
         e,
         StackTrace.current,
         hint: 'ReverbService init failed',
       );
+    }
+  }
+
+  void handleConnectivityChanged(bool isOnline) {
+    ObservabilityService.instance.info(
+      '[REVERB] Connectivity changed. Online: $isOnline',
+    );
+    if (isOnline) {
+      connect();
+    } else {
+      _ref.read(connectionStatusProvider.notifier).state =
+          ConnectionStatus.offline;
     }
   }
 

@@ -18,43 +18,50 @@ class NotificationBridge {
     _ref.read(connectionMonitorProvider);
     _ref.read(realtimeDispatcherProvider);
     _ref.read(dashboardSyncProvider);
+  }
 
-    // Watch for new notifications to show local notifications
-    _ref.listen<AsyncValue<NotificationState>>(notificationProvider, (
-      previous,
-      next,
-    ) {
-      final nextValue = next.valueOrNull;
-      final prevValue = previous?.valueOrNull;
+  void handleNotificationChanged(
+    AsyncValue<NotificationState>? previous,
+    AsyncValue<NotificationState> next,
+  ) {
+    final nextValue = next.valueOrNull;
+    final prevValue = previous?.valueOrNull;
 
-      if (nextValue != null && prevValue != null) {
-        final newItems = nextValue.items
-            .where(
-              (item) =>
-                  !prevValue.items.any((prevItem) => prevItem.id == item.id),
-            )
-            .toList();
+    if (nextValue != null && prevValue != null) {
+      final newItems = nextValue.items
+          .where(
+            (item) =>
+                !prevValue.items.any((prevItem) => prevItem.id == item.id),
+          )
+          .toList();
 
-        if (newItems.isNotEmpty) {
-          final localNotificationService = _ref.read(
-            localNotificationServiceProvider,
+      if (newItems.isNotEmpty) {
+        final localNotificationService = _ref.read(
+          localNotificationServiceProvider,
+        );
+        for (final item in newItems) {
+          localNotificationService.showNotification(
+            id: int.tryParse(item.id) ?? item.hashCode,
+            title: 'Deteksi Objek: ${item.cameraName}',
+            body: item.message,
+            payload: item.id,
           );
-          for (final item in newItems) {
-            localNotificationService.showNotification(
-              id: int.tryParse(item.id) ?? item.hashCode,
-              title: 'Deteksi Objek: ${item.cameraName}',
-              body: item.message,
-              payload: item.id,
-            );
-          }
         }
       }
-    });
+    }
   }
 }
 
 final notificationBridgeProvider = Provider<NotificationBridge>((ref) {
   final bridge = NotificationBridge(ref);
   bridge.init();
+
+  ref.listen<AsyncValue<NotificationState>>(notificationProvider, (
+    previous,
+    next,
+  ) {
+    bridge.handleNotificationChanged(previous, next);
+  });
+
   return bridge;
 });
