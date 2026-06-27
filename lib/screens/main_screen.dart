@@ -40,11 +40,10 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (BuildContext bc) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
+        return Material(
+          color: Theme.of(context).cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          clipBehavior: Clip.antiAlias,
           child: Wrap(
             children: <Widget>[
               Padding(

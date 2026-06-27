@@ -52,7 +52,7 @@ class CameraThumbnailHeader extends StatelessWidget {
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Column(

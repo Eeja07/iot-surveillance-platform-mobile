@@ -69,50 +69,70 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
         return widget.fallbackBuilder!(context, _error!);
       }
 
-      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final hasDirectionality = Directionality.maybeOf(context) != null;
 
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, color: Colors.red[400], size: 80),
-                const SizedBox(height: 24),
-                const Text(
-                  'Terjadi Kesalahan',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Terjadi kesalahan internal saat memuat bagian ini.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+      Widget buildContent(BuildContext buildCtx) {
+        Brightness? brightness;
+        try {
+          brightness = Theme.of(buildCtx).brightness;
+        } catch (_) {
+          brightness = Brightness.light;
+        }
+        final isDark = brightness == Brightness.dark;
+        return Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red[400], size: 80),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Terjadi Kesalahan',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: reset,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Coba Lagi'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Terjadi kesalahan internal saat memuat bagian ini.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: reset,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Coba Lagi'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
+
+      if (!hasDirectionality) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Builder(
+            builder: (ctx) => buildContent(ctx),
+          ),
+        );
+      }
+
+      return buildContent(context);
     }
 
     return widget.child;

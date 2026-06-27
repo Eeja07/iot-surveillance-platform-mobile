@@ -147,21 +147,24 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ErrorBoundary(
-      child: LifecycleObserver(
-        onResumed: () {
-          ObservabilityService.instance.info('App resumed, syncing systems');
+    return LifecycleObserver(
+      onResumed: () {
+        ObservabilityService.instance.info('App resumed, syncing systems');
+      },
+      child: MaterialApp.router(
+        routerConfig: AppRouter.router,
+        title: 'MiotVision',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: _themeMode,
+        builder: (context, child) {
+          return ErrorBoundary(
+            child: OfflineIndicator(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
         },
-        child: OfflineIndicator(
-          child: MaterialApp.router(
-            routerConfig: AppRouter.router,
-            title: 'MiotVision',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: _themeMode,
-          ),
-        ),
       ),
     );
   }
