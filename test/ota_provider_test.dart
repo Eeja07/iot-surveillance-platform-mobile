@@ -135,6 +135,12 @@ void main() {
     });
 
     test('startUpdate transitions through state machine correctly', () async {
+      final originalInterval = OTANotifier.pollingInterval;
+      OTANotifier.pollingInterval = const Duration(milliseconds: 100);
+      addTearDown(() {
+        OTANotifier.pollingInterval = originalInterval;
+      });
+
       fakeOtaRepository.deployments = [
         OTAHistoryEntry(
           version: 'v1.3.0',
@@ -203,8 +209,8 @@ void main() {
         ),
       ];
 
-      // Wait for poll (3 seconds interval)
-      await Future.delayed(const Duration(milliseconds: 3200));
+      // Wait for poll (100ms interval)
+      await Future.delayed(const Duration(milliseconds: 150));
 
       final providerState = container.read(otaNotifierProvider);
       final state = providerState.value!;

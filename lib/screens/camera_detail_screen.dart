@@ -55,7 +55,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
     });
 
     _autoRefreshTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 30),
       (_) => _performAutoRefresh(),
     );
   }

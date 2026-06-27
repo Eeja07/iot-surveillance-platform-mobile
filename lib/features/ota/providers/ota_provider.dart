@@ -81,6 +81,7 @@ class OTAState {
 }
 
 class OTANotifier extends AutoDisposeAsyncNotifier<OTAState> {
+  static Duration pollingInterval = const Duration(seconds: 15);
   Timer? _pollingTimer;
 
   @override
@@ -227,7 +228,7 @@ class OTANotifier extends AutoDisposeAsyncNotifier<OTAState> {
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _pollingTimer = Timer.periodic(pollingInterval, (timer) async {
       final current = state.valueOrNull;
       if (current == null) return;
 

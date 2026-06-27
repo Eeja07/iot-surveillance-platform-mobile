@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _fetchCamerasFromApi();
     widget.refreshNotifier?.addListener(_handleRefreshSignal);
 
-    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
       if (mounted) {
         _fetchCamerasFromApi(isSilent: true);
       }

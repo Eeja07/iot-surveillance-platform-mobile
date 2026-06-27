@@ -7,6 +7,7 @@ import '../observability/offline_indicator.dart';
 import '../observability/observability_service.dart';
 import 'connection_monitor.dart';
 import 'connection_provider.dart';
+import 'realtime_dispatcher.dart';
 
 class ReverbService {
   final Ref _ref;
@@ -199,17 +200,7 @@ class ReverbService {
 
   void _onEvent(PusherEvent event) {
     _ref.read(connectionMonitorProvider).recordActivity();
-    if (event.eventName == 'person.detected') {
-      ObservabilityService.instance.info(
-        '[REVERB] Person detected event received!',
-      );
-      _invalidateProviders();
-    }
-  }
-
-  void _invalidateProviders() {
-    _ref.invalidate(detectionNotifierProvider);
-    _ref.invalidate(notificationProvider);
+    _ref.read(realtimeDispatcherProvider).dispatch(event);
   }
 
   void _triggerReconnect() {

@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/notification/providers/notification_provider.dart';
 import '../notifications/notification_provider.dart';
 import 'connection_monitor.dart';
+import 'dashboard_sync.dart';
+import 'realtime_dispatcher.dart';
 import 'realtime_lifecycle.dart';
 import 'reverb_provider.dart';
 
@@ -14,6 +16,8 @@ class NotificationBridge {
     _ref.read(reverbServiceProvider);
     _ref.read(realtimeLifecycleProvider);
     _ref.read(connectionMonitorProvider);
+    _ref.read(realtimeDispatcherProvider);
+    _ref.read(dashboardSyncProvider);
 
     // Watch for new notifications to show local notifications
     _ref.listen<AsyncValue<NotificationState>>(notificationProvider, (
