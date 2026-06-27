@@ -73,6 +73,7 @@ class ReverbService {
     ObservabilityService.instance.info("[REVERB] disconnect");
     _initialized = false;
     _connecting = false;
+    _cameraChannels.clear();
     _closeSocket();
     _updateConnectionStatus(ConnectionStatus.offline);
   }
@@ -326,6 +327,7 @@ class ReverbService {
   }
 
   void dispose() {
+    _cameraChannels.clear();
     _reconnectTimer?.cancel();
     _closeSocket();
   }

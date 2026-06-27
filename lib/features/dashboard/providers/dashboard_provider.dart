@@ -26,6 +26,7 @@ import '../../../models/overview_model.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/di/repository_providers.dart';
 import '../../../core/network/api_result.dart';
+import '../../../core/realtime/reverb_provider.dart';
 
 // ---------------------------------------------------------------------------
 // DashboardState — immutable value object
@@ -186,6 +187,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
             deviceId: cam.deviceId,
             description: cam.description,
             thumbnailUrl: url,
+            websocketChannelId: cam.websocketChannelId,
           );
         }
         return cam;
@@ -255,6 +257,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
             deviceId: cam.deviceId,
             description: cam.description,
             thumbnailUrl: cache[cam.id as int],
+            websocketChannelId: cam.websocketChannelId,
           );
         }
         return cam;
@@ -269,6 +272,18 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
     }).toList();
 
     final currentQuery = state.valueOrNull?.searchQuery ?? '';
+
+    // Get Reverb instance and loop cameras to subscribe
+    final reverb = ref.read(reverbServiceProvider);
+    for (final group in processedGroups) {
+      for (final cam in group.cameras) {
+        final channel = cam.websocketChannelId;
+        if (channel != null && channel.isNotEmpty) {
+          reverb.subscribeToCameraChannel(channel);
+        }
+      }
+    }
+
     return DashboardState(
       groups: processedGroups,
       thumbnailCache: cache,

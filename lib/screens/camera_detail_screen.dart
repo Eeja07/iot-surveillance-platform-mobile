@@ -226,6 +226,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           deviceId: widget.camera.deviceId,
           groupId: widget.camera.groupId,
           thumbnailUrl: widget.camera.thumbnailUrl,
+          websocketChannelId: widget.camera.websocketChannelId,
         ),
       },
     );
@@ -244,6 +245,7 @@ class _CameraDetailScreenState extends State<CameraDetailScreen> {
           deviceId: widget.camera.deviceId,
           groupId: widget.camera.groupId,
           thumbnailUrl: widget.camera.thumbnailUrl,
+          websocketChannelId: widget.camera.websocketChannelId,
         ),
       },
     );

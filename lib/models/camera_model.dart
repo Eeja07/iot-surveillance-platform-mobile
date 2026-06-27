@@ -8,6 +8,8 @@ class Camera {
   final String? description;
   final String? thumbnailUrl;
 
+  final String? websocketChannelId;
+
   static const String _imageBaseUrl = 'https://cctv.miot-its.org';
 
   factory Camera.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class Camera {
       deviceId: json['device_id'],
       description: json['description'],
       thumbnailUrl: thumb,
+      websocketChannelId: json['websocket_channel_id'],
     );
   }
 
@@ -41,6 +44,7 @@ class Camera {
     this.deviceId,
     this.description,
     this.thumbnailUrl,
+    this.websocketChannelId,
   });
 }
 
