@@ -28,30 +28,31 @@ class NotificationBridge {
     AsyncValue<NotificationState> next,
   ) {
     final nextValue = next.valueOrNull;
-    final prevValue = previous?.valueOrNull;
 
-    if (nextValue == null || prevValue == null) return;
+    // Never bail out because previous is null.
+    // Treat null previous (startup / reconnect / provider refresh) as empty
+    // list so the very first batch is always processed.
+    if (nextValue == null) return;
+
+    final previousItems = previous?.valueOrNull?.items ?? [];
 
     final newItems = nextValue.items
         .where(
-          (item) => !prevValue.items.any((prevItem) => prevItem.id == item.id),
+          (item) => !previousItems.any((p) => p.id == item.id),
         )
         .toList();
 
+    // Diagnostics — visible in `flutter run` logcat.
+    debugPrint('[NOTIF] previous=${previousItems.length}');
+    debugPrint('[NOTIF] next=${nextValue.items.length}');
+    debugPrint('[NOTIF] new=${newItems.length}');
+
     if (newItems.isEmpty) return;
 
-    // Only fire Android notifications when the app is NOT in the foreground.
-    // When app is open, provider invalidation already refreshes the UI.
-    final lifecycle = _ref.read(appLifecycleProvider);
-    final isInForeground = lifecycle == AppLifecycleState.resumed;
-
-    if (isInForeground) {
-      ObservabilityService.instance.info(
-        '[NOTIF] App in foreground — skipping Android notification '
-        '(${newItems.length} new item(s))',
-      );
-      return;
-    }
+    // TODO(phase-21.7-verify): foreground guard temporarily disabled so
+    // notification delivery can be confirmed end-to-end.
+    // Re-enable after verifying [NOTIF] sending appears in logs.
+    debugPrint('[NOTIF] lifecycle=${_ref.read(appLifecycleProvider)}');
 
     final localNotificationService = _ref.read(localNotificationServiceProvider);
 
